@@ -79,18 +79,3 @@
 /root/lunwen/sim/run_paper_match.sh B_calib0 1
 
 /root/lunwen/sim/run_paper_match.sh B_calib400 1
-
-
----
-
-## 王欣溢
-https://github.com/Fuller001
-
-## 王方卓
-https://github.com/WFZHUO
-
-## 凌陈昊
-https://github.com/arkuna23
-
-## 陶飞扬
-https://github.com/Schwonn
