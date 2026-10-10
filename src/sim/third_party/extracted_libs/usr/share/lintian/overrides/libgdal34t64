@@ -1,0 +1,8 @@
+# False positive, Lat/Lon
+spelling-error-in-binary lon long *
+
+# GDAL uses external libjpeg
+embedded-library libjpeg *
+
+# 64-bit time_t transition
+package-name-doesnt-match-sonames libgdal34

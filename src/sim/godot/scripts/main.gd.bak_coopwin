@@ -1,0 +1,4962 @@
+extends Node3D
+
+## 3v3 RoboMaster-style closed loop:
+## 6 robots (robot_id 0..5), each with an isolated vision engine in the shared worker.
+## Red team = ids 0,1,2  (SP_TEAM_RED=0) hunts blue armors.
+## Blue team = ids 3,4,5 (SP_TEAM_BLUE=1) hunts red armors.
+
+const ARMOR_RADIUS := 0.28
+const TARGET_BODY_RADIUS := 0.18
+const INFANTRY_ARMOR_PANEL_SIZE := Vector2(0.150, 0.126)
+const INFANTRY_LIGHTBAR_SPACING := 0.135
+const INFANTRY_LIGHTBAR_LENGTH := 0.056
+const ProjectileScript := preload("res://scripts/projectile.gd")
+const TeamCoopScript := preload("res://scripts/team_coop.gd")
+const CHASSIS_MODEL_PATH := "res://models/robomaster_s1.glb"
+## Uniform scale applied after centering the imported GLB (S1 ~0.5 m class).
+const CHASSIS_MODEL_SCALE := 1.0
+# GLB gun forward is opposite Godot -Z; rotate visual so barrel faces body forward.
+const CHASSIS_VISUAL_YAW_OFFSET := PI  # Initial guess; _auto_align_mesh_to_original_gun picks 0 or PI from real gun.
+## Target chassis footprint for collision / armor ring if auto-fit is used.
+const CHASSIS_TARGET_LENGTH := 0.60
+const CHASSIS_COLLISION_SIZE := Vector3(0.48, 0.26, 0.56)
+const ARMOR_HEIGHT := 0.16
+const NUMBER_HEIGHT := 0.30
+
+const TEAM_RED := 0
+const TEAM_BLUE := 1
+const ROBOT_COUNT := 6
+const ROBOTS_PER_TEAM := 3
+
+const ACTION_MOVE_FORWARD := &"sim_move_forward"
+const ACTION_MOVE_BACKWARD := &"sim_move_backward"
+const ACTION_MOVE_LEFT := &"sim_move_left"
+const ACTION_MOVE_RIGHT := &"sim_move_right"
+const ACTION_SPRINT := &"sim_sprint"
+
+# Speed band for 6 cars: turn low → cruise → combat → dodge sprint.
+const CHASSIS_TURN_SPEED := 1.35
+const CHASSIS_NORMAL_SPEED := 2.45
+const CHASSIS_COMBAT_SPEED := 3.35
+const CHASSIS_BURST_SPEED := 4.9
+const CHASSIS_NORMAL_OMEGA := 4.6
+const CHASSIS_BURST_OMEGA := 7.2
+const CHASSIS_WHEEL_SPEED_LIMIT := 6.2
+const CHASSIS_ROTATION_RADIUS := 0.385
+const CHASSIS_FOLLOW_KP := 3.4
+const CHASSIS_FOLLOW_DEADZONE := PI / 12.0
+const CHASSIS_ANGULAR_ACCEL := 6.0 * PI
+const GYRO_DISABLED := 0
+const GYRO_COUNTERCLOCKWISE := 1
+const GYRO_CLOCKWISE := -1
+
+const FIELD_HALF := 7.5
+const ARENA_SIZE := 15.0
+## Bore-sight fire: enemy must lie on the gun barrel ray (lateral miss < radius).
+const MUZZLE_LINE_LATERAL_MAX := 0.42  # meters off the barrel axis
+const MUZZLE_LINE_RANGE_MIN := 0.6
+const MUZZLE_LINE_RANGE_MAX := 12.0
+const AI_SHOT_COOLDOWN := 3.0  # seconds between AI shells; leave time for hit-evade dodge
+const ARMOR_HP := 5  # hits taken before robot eliminated
+const MATCH_TIME_LIMIT := 180.0  # seconds; then higher score wins
+const AVOID_LOOKAHEAD := 2.2
+const AVOID_SIDE_LOOK := 1.4
+
+## Spawn: red on +Z, blue on -Z, facing each other.
+const SPAWN_POSES := [
+# Blue is red rotated 180 degrees about the arena center. Yaw faces the opposite side.
+{"id": 0, "team": TEAM_RED, "pos": Vector3(-3.4, 0.0, 5.2), "yaw": -0.18},
+{"id": 1, "team": TEAM_RED, "pos": Vector3(0.6, 0.0, 5.8), "yaw": 0.12},
+{"id": 2, "team": TEAM_RED, "pos": Vector3(3.1, 0.0, 4.6), "yaw": 0.35},
+{"id": 3, "team": TEAM_BLUE, "pos": Vector3(3.4, 0.0, -5.2), "yaw": PI - 0.18},
+{"id": 4, "team": TEAM_BLUE, "pos": Vector3(-0.6, 0.0, -5.8), "yaw": PI + 0.12},
+{"id": 5, "team": TEAM_BLUE, "pos": Vector3(-3.1, 0.0, -4.6), "yaw": PI + 0.35},
+]
+
+var bridge: Object
+var extension_ready := false
+var robots: Array = []  # Array of Dictionary robot state
+var _chassis_model_template: Node3D = null  # shared GLB root for instancing
+var _chassis_model_scale: float = CHASSIS_MODEL_SCALE
+var player_robot_id := 0
+var r1_vision_save_count := 0  # saved PNGs for R1 (id=0) vision frames
+var r1_vision_save_max := 8
+var r1_vision_save_dir := "user://vision_r1"  # also mirrored under res imgs
+var capture_cursor := 0
+var capture_accumulator := 0.0
+var capture_requested_id := -1
+var pending_captures: Dictionary = {}  # robot_id -> meta
+
+var camera_size := Vector2i(320, 240)
+var camera_hz := 2.0  # vision closed-loop AI
+var camera_fov := 50.0
+var camera_exposure_multiplier := 1.0
+var camera_gamma := 1.0
+var sensor_local_transform := Transform3D.IDENTITY
+var bullet_speed := 10.0
+var planner_max_yaw_acc := 50.0
+var planner_max_pitch_acc := 100.0
+var auto_aim_yaw_velocity_feedforward := 1.0
+var auto_aim_yaw_acceleration_feedforward := 1.0
+var auto_aim_pitch_velocity_feedforward := 1.0
+var auto_aim_pitch_acceleration_feedforward := 1.0
+
+var world_environment: Environment
+var sun_light: DirectionalLight3D
+var overview_camera: Camera3D
+var player_camera: Camera3D
+var hud_label: Label
+var config_panel: PanelContainer
+var config_status_label: Label
+var base_config_path := ""
+var runtime_config_path := ""
+var mouse_sensitivity := 0.0016
+var gameplay_controls_enabled := true
+var overview_mode := true
+var orbit_yaw := 0.0
+var orbit_pitch := -1.28
+var orbit_distance := 22.0
+var orbit_min_distance := 1.2
+var orbit_max_distance := 80.0
+var orbit_focus := Vector3.ZERO
+var orbit_dragging := false
+var orbit_pan_dragging := false
+var orbit_rot_dragging := false
+var orbit_last_mouse := Vector2.ZERO
+var orbit_pan_sensitivity := 0.012
+var orbit_zoom_linear := 0.85  # meters per wheel notch (also used with step)
+var orbit_sensitivity := 0.008
+var orbit_zoom_step := 1.35
+var orbit_pivot: Node3D = null
+var combat_hud_label: Label = null
+var aim_reticle: Label = null
+var aim_status_label: Label = null
+var help_label: Label = null
+var sim_time := 0.0
+var match_time_limit := MATCH_TIME_LIMIT
+var hud_accum := 0.0
+var auto_fire_all := true
+var ai_enabled := true
+## Per-team rules: solo=无协同（独立个体）; coop=有协同（有机整体）
+## coop_mode true when ANY team is coop (legacy / any-assignment active).
+var coop_mode := false
+var coop_red := false   # red team (ids 0,1,2) uses multi-agent coop
+var coop_blue := false  # blue team (ids 3,4,5) uses multi-agent coop
+var team_coop = null  # TeamCoop instance (always created; per-team gates inside)
+const ExpProtocolScript := preload("res://scripts/exp_protocol.gd")
+var exp_protocol = null
+## false = all 6 robots full AI (move/aim/fire). true = selected robot is human-operated.
+var manual_control_mode := false
+var match_over := false
+var match_winner := -1
+var match_result_text := ""
+var _match_over_export_done := false
+var _quit_countdown := -1.0
+
+# Lightweight runtime panel controls
+var fps_spin: SpinBox
+var width_spin: SpinBox
+var height_spin: SpinBox
+var autofire_check: CheckButton
+var ai_check: CheckButton
+
+
+
+func _parse_mode_token(s: String) -> String:
+	## Normalize solo|coop token; empty if unknown.
+	var t := s.strip_edges().to_lower()
+	if t in ["solo", "no_coop", "none", "0", "off", "false"]:
+		return "solo"
+	if t in ["coop", "with_coop", "1", "on", "true", "yes"]:
+		return "coop"
+	return ""
+
+
+func _parse_coop_mode_from_cmdline() -> void:
+	## Per-team modes from env / user args.
+	var red_m := "solo"
+	var blue_m := "solo"
+	var env_both := OS.get_environment("SIM_COOP_MODE").strip_edges().to_lower()
+	var env_r := OS.get_environment("SIM_COOP_RED").strip_edges().to_lower()
+	var env_b := OS.get_environment("SIM_COOP_BLUE").strip_edges().to_lower()
+	if not env_both.is_empty():
+		var mb := _parse_mode_token(env_both)
+		if mb != "":
+			red_m = mb
+			blue_m = mb
+	if not env_r.is_empty():
+		var mr := _parse_mode_token(env_r)
+		if mr != "":
+			red_m = mr
+	if not env_b.is_empty():
+		var mbl := _parse_mode_token(env_b)
+		if mbl != "":
+			blue_m = mbl
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	var i := 0
+	while i < args.size():
+		var s := str(args[i]).strip_edges().to_lower()
+		if s.begins_with("--coop-red="):
+			var t := _parse_mode_token(s.substr(11))
+			if t != "":
+				red_m = t
+		elif s.begins_with("--coop-blue="):
+			var t2 := _parse_mode_token(s.substr(12))
+			if t2 != "":
+				blue_m = t2
+		elif s.begins_with("--red="):
+			var t3 := _parse_mode_token(s.substr(6))
+			if t3 != "":
+				red_m = t3
+		elif s.begins_with("--blue="):
+			var t4 := _parse_mode_token(s.substr(7))
+			if t4 != "":
+				blue_m = t4
+		elif s.begins_with("--coop="):
+			var t5 := _parse_mode_token(s.substr(7))
+			if t5 != "":
+				red_m = t5
+				blue_m = t5
+		elif s.begins_with("--mode="):
+			var t6 := _parse_mode_token(s.substr(7))
+			if t6 != "":
+				red_m = t6
+				blue_m = t6
+		elif s == "solo" or s == "coop":
+			red_m = s
+			blue_m = s
+		elif s == "red" or s == "r":
+			if i + 1 < args.size():
+				var t7 := _parse_mode_token(str(args[i + 1]))
+				if t7 != "":
+					red_m = t7
+				i += 1
+		elif s == "blue" or s == "b":
+			if i + 1 < args.size():
+				var t8 := _parse_mode_token(str(args[i + 1]))
+				if t8 != "":
+					blue_m = t8
+				i += 1
+		i += 1
+	coop_red = (red_m == "coop")
+	coop_blue = (blue_m == "coop")
+	coop_mode = coop_red or coop_blue
+	if team_coop == null:
+		team_coop = TeamCoopScript.new()
+	team_coop.set_team_modes(coop_red, coop_blue)
+	print("========================================")
+	print("SIM RULE: red=", ("COOP" if coop_red else "SOLO"),
+		"  blue=", ("COOP" if coop_blue else "SOLO"))
+	print("  (SIM_COOP_RED/BLUE | --coop-red= --coop-blue= | red solo blue coop)")
+	print("========================================")
+
+
+func _team_is_coop(team: int) -> bool:
+	if team_coop != null:
+		return team_coop.is_team_enabled(team)
+	return coop_red if team == TEAM_RED else coop_blue
+
+
+func _robot_is_coop(robot: Dictionary) -> bool:
+	return _team_is_coop(int(robot.get("team", -1)))
+
+
+func _coop_force_aim_focus(robot: Dictionary) -> void:
+	if exp_protocol != null and exp_protocol.active:
+		return
+	## Coop chassis yaw policy:
+	## - Far transit / rescue approach: face *waypoint* so we can drive (no spin-in-place).
+	## - Close combat: face shared focus enemy for fire.
+	if not _robot_is_coop(robot) or team_coop == null:
+		return
+	if not bool(robot.get("alive", true)):
+		return
+	var asg: Variant = team_coop.assigned_enemy(robots, robot)
+	if asg != null:
+		robot["ai_target_id"] = int(asg["id"])
+	var body: CharacterBody3D = robot["body"]
+	var my: Vector3 = body.global_position
+	var wp: Vector3 = robot.get("ai_waypoint", my) as Vector3
+	var to_wp: Vector3 = wp - my
+	to_wp.y = 0.0
+	var d_wp: float = to_wp.length()
+	var d_en := 99.0
+	var to_e := Vector3.ZERO
+	if asg != null:
+		to_e = asg["body"].global_position - my
+		to_e.y = 0.0
+		d_en = to_e.length()
+	# Transit: prioritize path heading (fixes 原地徘徊 when rescue path bends)
+	var transit := false
+	if d_wp > 2.0 and d_en > 3.2:
+		transit = true
+	if bool(robot.get("coop_rescue", false)) and d_en > 2.8 and d_wp > 1.4:
+		transit = true
+	if transit and d_wp > 0.45:
+		robot["command_yaw"] = _yaw_from_dir(to_wp)
+		robot["command_pitch"] = 0.0
+		robot["coop_aim_mode"] = "nav"
+		return
+	if asg != null and d_en > 0.2:
+		robot["command_yaw"] = _yaw_from_dir(to_e)
+		robot["command_pitch"] = 0.0
+		robot["coop_aim_mode"] = "focus"
+		return
+	if d_wp > 0.35:
+		robot["command_yaw"] = _yaw_from_dir(to_wp)
+		robot["command_pitch"] = 0.0
+		robot["coop_aim_mode"] = "nav"
+
+func _ready() -> void:
+	_parse_coop_mode_from_cmdline()
+	exp_protocol = ExpProtocolScript.new()
+	exp_protocol.configure()
+	if exp_protocol.active:
+		seed(exp_protocol.seed_value)
+		match_time_limit = exp_protocol.match_seconds
+		print("EXP_PROTOCOL_ON ", exp_protocol.summary_line())
+	_setup_input_actions()
+	_build_world()
+	_build_robots()
+	_build_cameras()
+	_build_ui()
+	RenderingServer.frame_pre_draw.connect(_on_sensor_frame_pre_draw)
+	RenderingServer.frame_post_draw.connect(_on_sensor_frame_post_draw)
+	_initialize_extension()
+	_set_active_camera()
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if not overview_mode else Input.MOUSE_MODE_VISIBLE
+
+
+func _setup_input_actions() -> void:
+	_add_default_key_action(ACTION_MOVE_FORWARD, KEY_W)
+	_add_default_key_action(ACTION_MOVE_BACKWARD, KEY_S)
+	_add_default_key_action(ACTION_MOVE_LEFT, KEY_A)
+	_add_default_key_action(ACTION_MOVE_RIGHT, KEY_D)
+	_add_default_key_action(ACTION_SPRINT, KEY_SHIFT)
+
+
+func _add_default_key_action(action: StringName, physical_key: Key) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	if not InputMap.action_get_events(action).is_empty():
+		return
+	var event := InputEventKey.new()
+	event.physical_keycode = physical_key
+	InputMap.action_add_event(action, event)
+
+
+func _build_world() -> void:
+	var environment_node := WorldEnvironment.new()
+	world_environment = Environment.new()
+	world_environment.background_mode = Environment.BG_COLOR
+	world_environment.background_color = Color("#7d8991")
+	world_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	world_environment.ambient_light_color = Color("#d8e0e3")
+	world_environment.ambient_light_energy = 0.8
+	environment_node.environment = world_environment
+	add_child(environment_node)
+
+	sun_light = DirectionalLight3D.new()
+	sun_light.rotation_degrees = Vector3(-48, -28, 0)
+	sun_light.light_energy = 1.1
+	sun_light.shadow_enabled = false
+	add_child(sun_light)
+
+	var floor_body := StaticBody3D.new()
+	var floor_mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(ARENA_SIZE, 0.1, ARENA_SIZE)
+	floor_mesh.mesh = box
+	floor_mesh.material_override = _material(Color("#4b5358"), 0.85)
+	floor_body.add_child(floor_mesh)
+	var floor_shape := CollisionShape3D.new()
+	var floor_box := BoxShape3D.new()
+	floor_box.size = box.size
+	floor_shape.shape = floor_box
+	floor_body.add_child(floor_shape)
+	floor_body.position.y = -0.05
+	add_child(floor_body)
+
+	# Center line / side markers for orientation.
+	var mid := MeshInstance3D.new()
+	var mid_mesh := BoxMesh.new()
+	mid_mesh.size = Vector3(ARENA_SIZE, 0.02, 0.08)
+	mid.mesh = mid_mesh
+	mid.position = Vector3(0, 0.01, 0)
+	mid.material_override = _material(Color("#d0d6da"), 0.9)
+	add_child(mid)
+
+	_build_boundary_walls()
+	_build_obstacles()
+
+
+
+
+func _build_boundary_walls() -> void:
+	## Four perimeter walls so the arena has a hard boundary (vehicles + shells).
+	var half := FIELD_HALF
+	var wall_h := 1.15
+	var wall_t := 0.35  # thickness
+	var span := ARENA_SIZE + wall_t  # cover corners
+	var color := Color("#3a4248")
+	# North (+Z), South (-Z), East (+X), West (-X)
+	var walls: Array = [
+		{"pos": Vector3(0.0, wall_h * 0.5, half + wall_t * 0.5), "size": Vector3(span, wall_h, wall_t)},
+		{"pos": Vector3(0.0, wall_h * 0.5, -(half + wall_t * 0.5)), "size": Vector3(span, wall_h, wall_t)},
+		{"pos": Vector3(half + wall_t * 0.5, wall_h * 0.5, 0.0), "size": Vector3(wall_t, wall_h, span)},
+		{"pos": Vector3(-(half + wall_t * 0.5), wall_h * 0.5, 0.0), "size": Vector3(wall_t, wall_h, span)},
+	]
+	for w in walls:
+		_spawn_obstacle_box(w["pos"], w["size"], color)
+	# Mark as boundary for debugging / special handling
+	print("Boundary walls: 4 sides @ ±", half, "m")
+
+
+func _build_obstacles() -> void:
+	## Dense cover across the whole arena (vehicles collide; shells blocked).
+	## Leave spawn pockets near |z|~5 and corridors for movement.
+	var specs: Array = []
+	var colors: Array = [
+		Color("#6a5a48"), Color("#5c6670"), Color("#7a6b55"),
+		Color("#56606a"), Color("#6e5f4c"), Color("#4e5860"),
+	]
+	var gi := 0
+	for ix in range(-3, 4):
+		for iz in range(-3, 4):
+			var x := float(ix) * 2.05 + (0.35 if (iz % 2) != 0 else -0.25)
+			var z := float(iz) * 2.05 + (0.2 if (ix % 2) != 0 else -0.15)
+			if absf(z) > 4.35 and absf(x) < 4.2:
+				continue
+			if absf(x) < 0.55 and absf(z) < 0.55:
+				continue
+			var tall := 0.55 + float((ix * 3 + iz * 5) % 4) * 0.12
+			var sx := 0.55 + float((ix + iz * 2) % 3) * 0.22
+			var sz := 0.55 + float((iz + ix * 2) % 3) * 0.22
+			if (ix + iz) % 4 == 0:
+				sx = 1.35 + float(abs(ix) % 2) * 0.35
+				sz = 0.45
+			elif (ix + iz) % 4 == 2:
+				sx = 0.45
+				sz = 1.25 + float(abs(iz) % 2) * 0.3
+			specs.append({
+				"pos": Vector3(x, tall * 0.5, z),
+				"size": Vector3(sx, tall, sz),
+				"color": colors[gi % colors.size()],
+			})
+			gi += 1
+	for a in range(8):
+		var ang := float(a) * TAU / 8.0 + 0.2
+		var rx := cos(ang) * 6.1
+		var rz := sin(ang) * 6.1
+		specs.append({
+			"pos": Vector3(rx, 0.4, rz),
+			"size": Vector3(1.1, 0.8, 0.55),
+			"color": colors[a % colors.size()],
+		})
+	specs.append({"pos": Vector3(0.0, 0.5, 0.0), "size": Vector3(1.6, 1.0, 1.6), "color": Color("#6a5a48")})
+	specs.append({"pos": Vector3(-2.4, 0.42, 1.8), "size": Vector3(0.55, 0.85, 2.0), "color": Color("#5c6670")})
+	specs.append({"pos": Vector3(2.4, 0.42, -1.8), "size": Vector3(0.55, 0.85, 2.0), "color": Color("#5c6670")})
+	specs.append({"pos": Vector3(2.0, 0.38, 2.6), "size": Vector3(1.8, 0.75, 0.5), "color": Color("#7a6b55")})
+	specs.append({"pos": Vector3(-2.0, 0.38, -2.6), "size": Vector3(1.8, 0.75, 0.5), "color": Color("#7a6b55")})
+	_mirror_cover_180(specs)
+	_thin_cover_two_fifths(specs)
+	for s in specs:
+		_spawn_obstacle_box(s["pos"], s["size"], s["color"])
+	print("Obstacles: ", specs.size(), " blocks")
+
+
+
+func _mirror_cover_180(specs: Array) -> void:
+	## Add the 180-degree partner of any cover block that does not already have one.
+	var extra: Array = []
+	for s in specs:
+		var p: Vector3 = s["pos"]
+		var mp: Vector3 = Vector3(-p.x, p.y, -p.z)
+		var found: bool = false
+		for t in specs:
+			var q: Vector3 = t["pos"]
+			if q.distance_to(mp) < 0.45:
+				found = true
+				break
+		if found:
+			continue
+		if absf(mp.z) > 4.35 and absf(mp.x) < 4.2:
+			continue
+		extra.append({"pos": mp, "size": s["size"], "color": s["color"]})
+	for e in extra:
+		specs.append(e)
+
+
+func _thin_cover_two_fifths(specs: Array) -> void:
+	## Drop about two fifths of the cover. A block and its 180-degree partner leave together.
+	var n0: int = specs.size()
+	if n0 < 5:
+		return
+	var partner: Array = []
+	partner.resize(n0)
+	for i in n0:
+		partner[i] = -1
+	for i in n0:
+		if int(partner[i]) >= 0:
+			continue
+		var p: Vector3 = specs[i]["pos"]
+		var mp: Vector3 = Vector3(-p.x, p.y, -p.z)
+		var found: int = -1
+		for j in range(i + 1, n0):
+			if int(partner[j]) >= 0:
+				continue
+			var q: Vector3 = specs[j]["pos"]
+			if q.distance_to(mp) < 0.45:
+				found = j
+				break
+		if found >= 0:
+			partner[i] = found
+			partner[found] = i
+	var groups: Array = []
+	var seen: Array = []
+	seen.resize(n0)
+	for i in n0:
+		seen[i] = false
+	for i in n0:
+		if bool(seen[i]):
+			continue
+		seen[i] = true
+		var g: Array = [i]
+		var j2: int = int(partner[i])
+		if j2 >= 0:
+			seen[j2] = true
+			g.append(j2)
+		var rep: Vector3 = specs[i]["pos"]
+		if j2 >= 0:
+			var rp: Vector3 = specs[j2]["pos"]
+			if rp.z > rep.z or (absf(rp.z - rep.z) < 0.001 and rp.x > rep.x):
+				rep = rp
+		groups.append({"idx": g, "ang": atan2(rep.x, rep.z), "rad": Vector2(rep.x, rep.z).length()})
+	for a in range(1, groups.size()):
+		var item: Dictionary = groups[a]
+		var b: int = a - 1
+		while b >= 0:
+			var prev: Dictionary = groups[b]
+			var ang_prev: float = float(prev["ang"])
+			var ang_item: float = float(item["ang"])
+			var swap: bool = ang_prev > ang_item or (absf(ang_prev - ang_item) < 0.0001 and float(prev["rad"]) > float(item["rad"]))
+			if not swap:
+				break
+			groups[b + 1] = prev
+			b -= 1
+		groups[b + 1] = item
+	var target_drop: int = int(round(float(n0) * 2.0 / 5.0))
+	var drop_ids: Dictionary = {}
+	var dropped: int = 0
+	for gi in groups.size():
+		if gi % 5 < 3:
+			continue
+		var g3: Array = groups[gi]["idx"] as Array
+		if dropped + g3.size() > target_drop + 1:
+			continue
+		for idv in g3:
+			drop_ids[int(idv)] = true
+		dropped += g3.size()
+	if dropped < target_drop:
+		for gi2 in range(groups.size() - 1, -1, -1):
+			if dropped >= target_drop:
+				break
+			var g4: Array = groups[gi2]["idx"] as Array
+			if drop_ids.has(int(g4[0])):
+				continue
+			if dropped + g4.size() > target_drop + 1:
+				continue
+			for idv2 in g4:
+				drop_ids[int(idv2)] = true
+			dropped += g4.size()
+	var kept: Array = []
+	for i2 in n0:
+		if drop_ids.has(i2):
+			continue
+		kept.append(specs[i2])
+	specs.clear()
+	for e in kept:
+		specs.append(e)
+
+func _spawn_obstacle_box(pos: Vector3, size: Vector3, color: Color) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Obstacle"
+	body.add_to_group("obstacle")
+	body.set_meta("is_obstacle", true)
+	body.collision_layer = 1
+	body.collision_mask = 0
+	body.position = pos
+	var mesh_i := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	mesh_i.mesh = box
+	mesh_i.material_override = _material(color, 0.75)
+	body.add_child(mesh_i)
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	col.shape = shape
+	body.add_child(col)
+	add_child(body)
+
+
+
+func _yaw_from_dir(dir: Vector3) -> float:
+	## World yaw so body -Z points along dir (Godot forward). Identical for red and blue.
+	var d := dir
+	d.y = 0.0
+	if d.length_squared() < 1e-8:
+		return 0.0
+	d = d.normalized()
+	# -basis.z = (-sin y, 0, -cos y) == d  =>  y = atan2(-d.x, -d.z)
+	return atan2(-d.x, -d.z)
+
+
+func _set_body_yaw(body: Node3D, yaw: float) -> void:
+	## Hard set planar yaw only (no look_at quirks / residual pitch/roll).
+	body.rotation = Vector3(0.0, wrapf(yaw, -PI, PI), 0.0)
+
+
+func _muzzle_world_dir(robot: Dictionary) -> Vector3:
+	## Shell direction == original gun barrel == drive forward (red and blue).
+	return _gun_world_dir(robot)
+
+
+func _body_forward_dir(robot: Dictionary) -> Vector3:
+	## Vehicle "forward" is the original gun direction (not a fake barrel).
+	return _gun_world_dir(robot)
+
+
+func _find_enemy_on_muzzle_line(robot: Dictionary) -> Variant:
+	## Closest LIVING ENEMY on barrel line with CLEAR LOS (never teammates).
+	var pitch_axis: Node3D = robot["pitch_axis"]
+	var muzzle_dir: Vector3 = _muzzle_world_dir(robot)
+	var origin: Vector3 = pitch_axis.global_position
+	# Keep fire origin near gun height
+	origin.y = maxf(origin.y, robot["body"].global_position.y + 0.28)
+	var best: Variant = null
+	var best_along: float = INF
+	var my_team: int = int(robot["team"])
+	var my_id: int = int(robot["id"])
+	for other in robots:
+		if int(other["team"]) == my_team:
+			continue
+		if _robot_is_coop(robot) and team_coop != null and not team_coop.should_engage_target(robot, other):
+			continue  # coop fire discipline
+		if not bool(other.get("alive", true)):
+			continue
+		if int(other["id"]) == my_id:
+			continue
+		var tgt: Vector3 = other["body"].global_position + Vector3(0.0, 0.22, 0.0)
+		var to_e: Vector3 = tgt - origin
+		to_e.y = 0.0
+		var along: float = to_e.dot(muzzle_dir)
+		if along < MUZZLE_LINE_RANGE_MIN or along > MUZZLE_LINE_RANGE_MAX:
+			continue
+		var closest_on_ray: Vector3 = muzzle_dir * along
+		var lateral: float = (to_e - closest_on_ray).length()
+		if lateral > MUZZLE_LINE_LATERAL_MAX:
+			continue
+		# Must face enemy with chassis (gun roughly along body forward).
+		if not _body_faces_enemy(robot, other, 0.25):
+			continue
+		# Must directly see the enemy — wall/obstacle/any chassis in between blocks fire.
+		if not _enemy_visible(robot, other):
+			continue
+		# Also ensure muzzle ray itself is not blocked earlier than the target.
+		var eye: Vector3 = pitch_axis.global_position
+		if not _has_clear_los(eye, tgt, [robot["body"].get_rid()], other["body"]):
+			continue
+		if along < best_along:
+			best_along = along
+			best = other
+	return best
+
+
+func _body_faces_enemy(robot: Dictionary, other: Dictionary, min_dot: float = 0.35) -> bool:
+	## True if chassis nose points roughly at enemy (cannot fire while back is turned).
+	if other == null:
+		return false
+	var bf: Vector3 = _body_forward_dir(robot)
+	var to_e: Vector3 = other["body"].global_position - robot["body"].global_position
+	to_e.y = 0.0
+	if to_e.length_squared() < 1e-6:
+		return false
+	return bf.dot(to_e.normalized()) >= min_dot  # ~70° forward cone
+
+
+func _vision_target_fresh(robot: Dictionary, max_age: float = 3.0) -> bool:
+	## Vision results arrive slowly (round-robin). Keep lock valid longer than 1 frame period.
+	return bool(robot.get("vision_has_target", false)) and float(robot.get("vision_age", 99.0)) <= max_age
+
+
+func _can_ai_fire_from_vision(robot: Dictionary) -> bool:
+	## True vision fire: recent result with armor detections + planner/detect flags.
+	if not _vision_target_fresh(robot, 2.0):
+		return false
+	var armor_n := int(robot.get("last_armor_count", 0))
+	if armor_n <= 0:
+		return false
+	var tracker := str(robot.get("last_tracker_state", ""))
+	if tracker.contains("lost") or tracker.contains("error"):
+		return false
+	if bool(robot.get("vision_shoot", false)):
+		return true
+	if bool(robot.get("vision_control", false)):
+		return true
+	# Detecting with armor boxes still counts as vision-driven opportunity fire.
+	if tracker.contains("detect") or tracker.contains("track"):
+		return true
+	return armor_n > 0
+
+
+
+
+func _r1_vision_save_paths(tag: String) -> PackedStringArray:
+	## Return [user_path, project_imgs_path] basenames with index.
+	var idx := r1_vision_save_count
+	var base := "r1_%02d_%s_t%.1f" % [idx, tag, sim_time]
+	return PackedStringArray([base + ".png"])
+
+
+func _save_r1_vision_image(image: Image, tag: String, extra: String = "") -> void:
+	## Persist R1 (红1 / robot_id=0) camera frame for inspection.
+	if image == null or image.is_empty():
+		return
+	if r1_vision_save_count >= r1_vision_save_max:
+		return
+	var idx := r1_vision_save_count
+	var fname := "r1_%02d_%s_t%.1f.png" % [idx, tag, sim_time]
+	# 1) user:// (always writable)
+	var user_dir := "user://vision_r1"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(user_dir))
+	var user_path := user_dir.path_join(fname)
+	var err := image.save_png(user_path)
+	# 2) project imgs/ (easy to scp/browse)
+	var proj_dir := "res://imgs/vision_r1"
+	var abs_proj := ProjectSettings.globalize_path(proj_dir)
+	DirAccess.make_dir_recursive_absolute(abs_proj)
+	var proj_path := proj_dir.path_join(fname)
+	var err2 := image.save_png(proj_path)
+	r1_vision_save_count += 1
+	print("R1_VISION_SAVE #", idx, " tag=", tag, " extra=", extra,
+		" user=", ProjectSettings.globalize_path(user_path),
+		" res=", ProjectSettings.globalize_path(proj_path),
+		" err=", err, "/", err2,
+		" size=", image.get_width(), "x", image.get_height())
+
+
+func _save_r1_vision_from_robot(robot: Dictionary, tag: String, extra: String = "") -> void:
+	if int(robot.get("id", -1)) != 0:
+		return
+	if r1_vision_save_count >= r1_vision_save_max:
+		return
+	var img: Image = null
+	if robot.has("last_vision_image") and robot["last_vision_image"] != null:
+		img = robot["last_vision_image"] as Image
+	if img == null or img.is_empty():
+		var vp: SubViewport = robot.get("viewport", null)
+		if vp != null:
+			var tex := vp.get_texture()
+			if tex != null:
+				img = tex.get_image()
+	if img == null or img.is_empty():
+		print("R1_VISION_SAVE skip (no image) tag=", tag)
+		return
+	_save_r1_vision_image(img.duplicate() if img.has_method("duplicate") else img, tag, extra)
+
+
+func _ai_fire_reason(robot: Dictionary) -> String:
+	## Console label: VISION* = camera; COOP_* = organic shared decision.
+	var armor_n := int(robot.get("last_armor_count", 0))
+	var fresh := _vision_target_fresh(robot, 2.0)
+	var tracker := str(robot.get("last_tracker_state", ""))
+	if fresh and armor_n > 0 and bool(robot.get("vision_shoot", false)):
+		return "vision_shoot"
+	if fresh and armor_n > 0 and bool(robot.get("vision_control", false)):
+		return "vision_control"
+	if fresh and armor_n > 0:
+		return "vision_detect"
+	if _robot_is_coop(robot) and bool(robot.get("coop_shared_cue", false)):
+		if bool(robot.get("coop_rescue", false)):
+			return "coop_rescue_fire"
+		if bool(robot.get("coop_focus", false)):
+			return "coop_focus_fire"
+		return "coop_shared_cue"
+	var since_see := sim_time - float(robot.get("vision_last_see_t", -99.0))
+	var mem_w := 5.0 if _robot_is_coop(robot) else 2.0
+	if since_see >= 0.0 and since_see <= mem_w and _can_ai_fire_now(robot):
+		return "bore_sight_memory"
+	if _can_ai_fire_now(robot):
+		return "bore_sight_raw"
+	return "none"
+
+
+func _can_ai_fire_closed_loop(robot: Dictionary) -> bool:
+	## Solo: own vision / short memory only.
+	## Coop organic whole: shared multimodal board + focus target + LOS/bore.
+	# Protocol: fire along the team's own aim, same cooldown, no true-body gate.
+	if exp_protocol != null and exp_protocol.active:
+		return exp_protocol.can_fire(self, robot, sim_time)
+	if _can_ai_fire_from_vision(robot):
+		return true
+	var since_see := sim_time - float(robot.get("vision_last_see_t", -99.0))
+	var mem_window := 1.6
+	if _robot_is_coop(robot):
+		mem_window = 5.0  # team memory is long-lived
+	if since_see >= 0.0 and since_see <= mem_window and _can_ai_fire_now(robot):
+		return true
+	# Coop: any shared cue / focus target on bore with LOS = authorized fire
+	if _robot_is_coop(robot) and team_coop != null:
+		if team_coop.has_shared_cue(robot) and _can_ai_fire_now(robot):
+			return true
+		# Focus target in front with clear LOS — team already knows where it is
+		var asg: Variant = team_coop.assigned_enemy(robots, robot)
+		if asg != null and _body_faces_enemy(robot, asg, 0.22) and _enemy_visible(robot, asg):
+			var along: Variant = _find_enemy_on_muzzle_line(robot)
+			if along != null and int(along["id"]) == int(asg["id"]):
+				return true
+			# Near bore: allow if close and facing (organic crossfire)
+			var d: float = robot["body"].global_position.distance_to(asg["body"].global_position)
+			if d < 7.5 and _body_faces_enemy(robot, asg, 0.45):
+				return true
+	return false
+
+
+func _update_ai_combat_mode_vision(robot: Dictionary, delta: float) -> void:
+	## Engage on vision lock; hunt/search when lost; disengage after burst/hit.
+	var mode: String = str(robot.get("ai_mode", "hunt"))
+	var aggression: float = clampf(float(robot.get("ai_aggression", 0.6)), 0.15, 1.2)
+	var brave: float = clampf(float(robot.get("ai_brave", 0.5)), 0.1, 1.0)
+	if mode == "disengage":
+		robot["ai_disengage_t"] = float(robot.get("ai_disengage_t", 0.0)) - delta
+		if float(robot["ai_disengage_t"]) <= 0.0:
+			robot["ai_mode"] = "hunt"
+			robot["ai_duel_t"] = 0.0
+			robot["ai_shots_burst"] = 0
+		return
+	var under_fire := _shell_dodge_dir(robot).length_squared() > 1e-4
+	var locked := _vision_target_fresh(robot, 3.0) or (_find_enemy_on_muzzle_line(robot) != null)
+	if locked or under_fire:
+		robot["ai_duel_t"] = float(robot.get("ai_duel_t", 0.0)) + delta * (1.35 if under_fire else 1.0)
+		robot["ai_mode"] = "engage"
+	else:
+		robot["ai_duel_t"] = maxf(0.0, float(robot.get("ai_duel_t", 0.0)) - delta * 0.55)
+		if float(robot["ai_duel_t"]) < 0.35:
+			robot["ai_mode"] = "hunt"
+			robot["ai_shots_burst"] = 0
+	var threshold: float = 0.85 + brave * 1.3 + aggression * 1.0
+	if (int(robot["id"]) % 2) == 0:
+		threshold *= 0.85
+	else:
+		threshold *= 1.1
+	var burst: int = int(robot.get("ai_shots_burst", 0))
+	var should_break := float(robot.get("ai_duel_t", 0.0)) >= threshold
+	should_break = should_break or (burst >= 5 and randf() < 0.3 + (1.0 - brave) * 0.35)
+	should_break = should_break or (under_fire and randf() < 0.1 + (1.0 - brave) * 0.12)
+	# Coop organic whole: during focus/rescue do NOT scatter — 一方有难八方支援
+	if team_coop != null and team_coop.prefer_no_disengage(robot):
+		should_break = false
+	# Solo: more likely to break contact alone (no backup)
+	if not _robot_is_coop(robot) and under_fire and randf() < 0.18:
+		should_break = true
+	if should_break and mode != "disengage" and float(robot.get("ai_hit_evade_t", 0.0)) <= 0.0:
+		robot["ai_mode"] = "disengage"
+		robot["ai_disengage_t"] = 0.22 + randf() * 0.28 + (1.0 - aggression) * 0.12
+		robot["ai_shots_burst"] = 0
+		robot["ai_duel_t"] = 0.0
+		var body_f := _body_forward_dir(robot)
+		var side := Vector3(-body_f.z, 0.0, body_f.x) * (1.0 if randf() > 0.5 else -1.0)
+		var my_pos: Vector3 = robot["body"].global_position
+		var esc: Vector3 = my_pos - body_f * (2.5 + randf() * 2.0) + side * (1.5 + randf() * 2.0)
+		esc.x = clampf(esc.x, -6.5, 6.5)
+		esc.z = clampf(esc.z, -6.5, 6.5)
+		robot["ai_waypoint"] = esc
+		robot["ai_want_sprint"] = true
+		robot["ai_speed_scale"] = 1.0
+
+
+
+func _pick_forward_visible_enemy(robot: Dictionary) -> Variant:
+	## Enemy in front hemisphere with clear LOS — used only when vision is cold,
+	## so cars that meet still acquire and fire (simulates "I can see you").
+	var best: Variant = null
+	var best_d := INF
+	var bf: Vector3 = _body_forward_dir(robot)
+	var my: Vector3 = robot["body"].global_position
+	for other in robots:
+		if int(other["team"]) == int(robot["team"]):
+			continue
+		if not bool(other.get("alive", true)):
+			continue
+		if _robot_is_coop(robot) and team_coop != null and not team_coop.should_engage_target(robot, other):
+			continue
+		var to_e: Vector3 = other["body"].global_position - my
+		to_e.y = 0.0
+		var d: float = to_e.length()
+		if d < 0.6 or d > MUZZLE_LINE_RANGE_MAX:
+			continue
+		if bf.dot(to_e.normalized()) < 0.35:  # ~70° forward cone
+			continue
+		if not _enemy_visible(robot, other):
+			continue
+		if d < best_d:
+			best_d = d
+			best = other
+	return best
+
+
+func _can_ai_fire_now(robot: Dictionary) -> bool:
+	## Bore-sight + LOS + chassis faces enemy (no back-facing shots).
+	var foe: Variant = _find_enemy_on_muzzle_line(robot)
+	if foe == null:
+		return false
+	return _body_faces_enemy(robot, foe, 0.30)
+
+
+func _is_world_blocker(col: Object) -> bool:
+	if col == null:
+		return false
+	if col.is_in_group("obstacle"):
+		return true
+	if col is Node and (col as Node).has_meta("is_obstacle"):
+		return bool((col as Node).get_meta("is_obstacle"))
+	# Perimeter walls / static geometry
+	if col is StaticBody3D:
+		return true
+	return false
+
+
+
+func _cover_blocks_barrel(from: Vector3, to: Vector3, exclude: Array) -> bool:
+	## True only when a wall or obstacle is the first thing along the barrel.
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from, to)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.collision_mask = 1
+	if not exclude.is_empty():
+		query.exclude = exclude
+	var hit: Dictionary = space.intersect_ray(query)
+	if hit.is_empty():
+		return false
+	var col: Object = hit.get("collider")
+	return _is_world_blocker(col)
+
+
+func _ray_blocked(from: Vector3, to: Vector3, exclude: Array = []) -> bool:
+	## True if an obstacle/wall sits between from→to (before reaching target).
+	return not _has_clear_los(from, to, exclude, null)
+
+
+func _has_clear_los(from: Vector3, to: Vector3, exclude: Array = [], target_body: Object = null) -> bool:
+	## Direct line-of-sight: no wall/obstacle and no other robot before the target.
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.collision_mask = 1
+	if not exclude.is_empty():
+		query.exclude = exclude
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return true
+	var hp: Vector3 = hit.get("position", to)
+	var reach := from.distance_to(to)
+	var hit_d := from.distance_to(hp)
+	# Hit at/near target counts as clear (we "see" them).
+	if hit_d >= reach - 0.20:
+		return true
+	var col: Object = hit.get("collider")
+	if col == null:
+		return true
+	if target_body != null and col == target_body:
+		return true
+	# Blocker: obstacle, wall, or another chassis in the way
+	if _is_world_blocker(col):
+		return false
+	if col is CharacterBody3D:
+		return false
+	return true
+
+
+func _enemy_visible(robot: Dictionary, other: Dictionary) -> bool:
+	## True if shooter can directly see living enemy (no wall/teammate between).
+	if other == null:
+		return false
+	if int(other.get("team", -1)) == int(robot.get("team", -2)):
+		return false
+	if not bool(other.get("alive", true)):
+		return false
+	var eye: Vector3 = robot["pitch_axis"].global_position if robot.has("pitch_axis") else robot["body"].global_position + Vector3(0, 0.28, 0)
+	var tgt: Vector3 = other["body"].global_position + Vector3(0.0, 0.22, 0.0)
+	var excl: Array = [robot["body"].get_rid()]
+	# Do not exclude enemy body — hitting it means we see them.
+	return _has_clear_los(eye, tgt, excl, other["body"])
+
+
+
+func _forward_wall_gap(body: CharacterBody3D, forward: Vector3) -> float:
+	var origin := body.global_position + Vector3(0.0, 0.28, 0.0)
+	var f := forward
+	f.y = 0.0
+	if f.length_squared() < 1e-6:
+		return 99.0
+	f = f.normalized()
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + f * 2.4)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	query.collision_mask = 1
+	query.exclude = [body.get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return 99.0
+	return origin.distance_to(hit.get("position", origin))
+
+
+func _side_clearance(body: CharacterBody3D, side_dir: Vector3) -> float:
+	var origin := body.global_position + Vector3(0.0, 0.28, 0.0)
+	var d := side_dir
+	d.y = 0.0
+	if d.length_squared() < 1e-6:
+		return 0.0
+	d = d.normalized()
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + d * 2.0)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	query.collision_mask = 1
+	query.exclude = [body.get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return 2.0
+	return origin.distance_to(hit.get("position", origin))
+
+
+
+
+
+
+
+func _find_original_antenna_tip_local(visual_root: Node3D, space: Node3D) -> Vector3:
+	## Tip of the imported chassis antenna (tall thin mesh), in `space` local coords.
+	if visual_root == null or space == null:
+		return Vector3.ZERO
+	visual_root.force_update_transform()
+	space.force_update_transform()
+	var inv: Transform3D = space.global_transform.affine_inverse()
+	var best_top := -1.0e9
+	var best_tip := Vector3.ZERO
+	var found := false
+	var stack: Array = [visual_root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D:
+			var mi := n as MeshInstance3D
+			if mi.mesh != null:
+				var a: AABB = mi.global_transform * mi.get_aabb()
+				var s: Vector3 = a.size
+				# Tall thin island ≈ whip antenna (ignore wide hull/turret parts).
+				if minf(s.x, s.z) < 0.05 and s.y > 0.03:
+					var top_y: float = a.position.y + a.size.y
+					if top_y > best_top:
+						best_top = top_y
+						var tip_w := Vector3(a.get_center().x, top_y, a.get_center().z)
+						best_tip = inv * tip_w
+						found = true
+		for c in n.get_children():
+			stack.append(c)
+	return best_tip if found else Vector3.ZERO
+
+
+func _make_signal_ring_mesh(radius: float, thickness: float = 0.006) -> Mesh:
+	## Thin horizontal ring (line-like stroke) via TorusMesh; fallback to line circle.
+	var torus := TorusMesh.new()
+	var half_t := thickness * 0.5
+	torus.inner_radius = maxf(radius - half_t, 0.001)
+	torus.outer_radius = radius + half_t
+	torus.rings = 8
+	torus.ring_segments = 36
+	return torus
+
+
+func _update_comm_signals(_delta: float) -> void:
+	## Pulse team-colored wireless arcs on living vehicles (antenna).
+	for robot in robots:
+		var rings = robot.get("comm_rings", null)
+		var root = robot.get("comm_root", null)
+		if root == null or rings == null:
+			continue
+		var alive := bool(robot.get("alive", true))
+		if root is Node3D:
+			(root as Node3D).visible = alive
+		if not alive:
+			continue
+		var team := int(robot["team"])
+		var base_col := Color(1.0, 0.15, 0.12) if team == TEAM_RED else Color(0.15, 0.45, 1.0)
+		var i := 0
+		for ring in rings:
+			if ring == null or not is_instance_valid(ring):
+				continue
+			var phase := sim_time * 2.4 + float(robot["id"]) * 0.7 + float(i) * 0.85
+			# Pulse each concentric line at different phase (wireless ripple).
+			var s := 0.92 + 0.28 * (0.5 + 0.5 * sin(phase))
+			ring.scale = Vector3(s, 1.0, s)
+			var mat := ring.material_override as StandardMaterial3D
+			if mat:
+				var a := 0.35 + 0.5 * (0.5 + 0.5 * sin(phase + 0.6))
+				mat.albedo_color = Color(base_col.r, base_col.g, base_col.b, a)
+				mat.emission = base_col
+				mat.emission_energy_multiplier = 2.5 + 3.5 * a
+			i += 1
+
+
+func _eliminate_robot(robot: Dictionary) -> void:
+	if not bool(robot.get("alive", true)):
+		return  # already wreck — never re-enter
+	robot["alive"] = false
+	robot["ai_mode"] = "dead"
+	robot["auto_aim_enabled"] = false
+	robot["coop_target_id"] = -1
+	robot["vision_has_target"] = false
+	robot["vision_control"] = false
+	robot["vision_shoot"] = false
+	var body: CharacterBody3D = robot["body"]
+	body.velocity = Vector3.ZERO
+	# Wreck stays on the field as a solid obstacle — others cannot drive through it.
+	body.position.y = 0.0
+	body.collision_layer = 1
+	body.collision_mask = 0  # wreck does not move; still blocks via layer 1
+	for c in body.get_children():
+		if c is CollisionShape3D:
+			(c as CollisionShape3D).disabled = false
+	# CRITICAL: remove armor plates from hit group so shells cannot overkill wrecks
+	# (was wasting focus fire on dead cars → timeout / incomplete matches).
+	if robot.has("armors"):
+		for a in robot["armors"]:
+			if a == null or not is_instance_valid(a):
+				continue
+			if a is Node:
+				(a as Node).remove_from_group("armor")
+				(a as Node).set_meta("dead", true)
+				(a as Node).set_meta("alive", false)
+			if a is CollisionObject3D:
+				(a as CollisionObject3D).collision_layer = 0
+				(a as CollisionObject3D).collision_mask = 0
+			if a is Node3D:
+				(a as Node3D).visible = false
+	var cr = robot.get("comm_root", null)
+	if cr != null and is_instance_valid(cr):
+		cr.visible = false
+	print("OUT id=", robot["id"], " team=", robot["team"], " (", _robot_label(robot), ") wreck blocks")
+
+
+
+func _living_robot_count() -> int:
+	var n := 0
+	for r in robots:
+		if bool(r.get("alive", true)):
+			n += 1
+	return n
+
+
+func _team_alive_count(team: int) -> int:
+	var n := 0
+	for r in robots:
+		if int(r["team"]) == team and bool(r.get("alive", true)):
+			n += 1
+	return n
+
+
+func _team_hits_scored(team: int) -> int:
+	var n := 0
+	for r in robots:
+		if int(r["team"]) == team:
+			n += int(r.get("hits", 0))
+	return n
+
+
+func _last_alive_team() -> int:
+	var last := -1
+	for r in robots:
+		if bool(r.get("alive", true)):
+			var tm := int(r["team"])
+			if last >= 0 and tm != last:
+				return -1
+			last = tm
+	return last
+
+
+func _check_match_winner() -> void:
+	if match_over:
+		return
+	var red_live := _team_alive_count(TEAM_RED)
+	var blue_live := _team_alive_count(TEAM_BLUE)
+	var total_live := red_live + blue_live
+	# End when only one (or zero) mobile vehicle remains.
+	if total_live <= 1:
+		match_over = true
+		if total_live == 0:
+			match_winner = -1
+			match_result_text = "平局（同归于尽）"
+		else:
+			match_winner = _last_alive_team()
+			if match_winner == TEAM_RED:
+				match_result_text = "红队胜利！仅剩一辆红车可动"
+			elif match_winner == TEAM_BLUE:
+				match_result_text = "蓝队胜利！仅剩一辆蓝车可动"
+			else:
+				match_result_text = "比赛结束"
+	elif red_live <= 0:
+		match_over = true
+		match_winner = TEAM_BLUE
+		match_result_text = "蓝队胜利！红方全灭"
+	elif blue_live <= 0:
+		match_over = true
+		match_winner = TEAM_RED
+		match_result_text = "红队胜利！蓝方全灭"
+	if match_over:
+		print("MATCH OVER: ", match_result_text)
+		_export_match_metrics("end")
+
+
+func _check_match_timeout() -> void:
+	if match_over:
+		return
+	if sim_time < match_time_limit:
+		return
+	var rh := _team_hits_scored(TEAM_RED)
+	var bh := _team_hits_scored(TEAM_BLUE)
+	match_over = true
+	if rh > bh:
+		match_winner = TEAM_RED
+		match_result_text = "红队胜利！时限到 命中 %d:%d" % [rh, bh]
+	elif bh > rh:
+		match_winner = TEAM_BLUE
+		match_result_text = "蓝队胜利！时限到 命中 %d:%d" % [rh, bh]
+	else:
+		match_winner = -1
+		var rl := _team_alive_count(TEAM_RED)
+		var bl := _team_alive_count(TEAM_BLUE)
+		if rl > bl:
+			match_winner = TEAM_RED
+			match_result_text = "红队胜利！时限平分，存活 %d:%d" % [rl, bl]
+		elif bl > rl:
+			match_winner = TEAM_BLUE
+			match_result_text = "蓝队胜利！时限平分，存活 %d:%d" % [rl, bl]
+		else:
+			match_result_text = "平局！时限到 命中 %d:%d" % [rh, bh]
+	print("MATCH OVER: ", match_result_text)
+	_export_match_metrics("end")
+
+
+
+func _export_match_metrics(reason: String = "end") -> void:
+	## Paper experiment record. Prefer SIM_METRICS_OUT path from batch runner.
+	if bool(get_meta("_metrics_exported", false)):
+		return
+	set_meta("_metrics_exported", true)
+	var red_hits := _team_hits_scored(TEAM_RED)
+	var blue_hits := _team_hits_scored(TEAM_BLUE)
+	var red_shots := 0
+	var blue_shots := 0
+	var red_alive := _team_alive_count(TEAM_RED)
+	var blue_alive := _team_alive_count(TEAM_BLUE)
+	var fusion_assist_sum := 0
+	var fusion_valid_sum := 0
+	var fusion_neighbors_max_sum := 0
+	var detection_sum := 0
+	var control_sum := 0
+	var rescue_events := int(get_meta("coop_rescue_events", 0)) if has_meta("coop_rescue_events") else 0
+	var per: Array = []
+	for r in robots:
+		var tid := int(r["team"])
+		var sh := int(r.get("shots", 0))
+		var ht := int(r.get("hits", 0))
+		if tid == TEAM_RED:
+			red_shots += sh
+		else:
+			blue_shots += sh
+		fusion_assist_sum += int(r.get("fusion_assist_count", 0))
+		fusion_valid_sum += int(r.get("fusion_valid_count", 0))
+		fusion_neighbors_max_sum += int(r.get("fusion_neighbor_count_max", 0))
+		detection_sum += int(r.get("detection_count", 0))
+		control_sum += int(r.get("control_count", 0))
+		per.append({
+			"id": int(r["id"]),
+			"team": tid,
+			"team_name": ("red" if tid == TEAM_RED else "blue"),
+			"number": int(r.get("number", int(r["id"]) % 3 + 1)),
+			"alive": bool(r.get("alive", true)),
+			"shots": sh,
+			"hits": ht,
+			"hit_taken": int(r.get("hit_taken", 0)),
+			"hp_remaining": maxi(0, ARMOR_HP - int(r.get("hit_taken", 0))) if bool(r.get("alive", true)) else 0,
+			"detection": int(r.get("detection_count", 0)),
+			"control": int(r.get("control_count", 0)),
+			"fusion_assist": int(r.get("fusion_assist_count", 0)),
+			"fusion_valid": int(r.get("fusion_valid_count", 0)),
+			"fusion_neighbors_max": int(r.get("fusion_neighbor_count_max", 0)),
+			"coop": _robot_is_coop(r),
+			"ai_role": int(r.get("ai_role", int(r["id"]) % 3)),
+		})
+	var red_acc := (100.0 * float(red_hits) / float(red_shots)) if red_shots > 0 else 0.0
+	var blue_acc := (100.0 * float(blue_hits) / float(blue_shots)) if blue_shots > 0 else 0.0
+	var total_shots := red_shots + blue_shots
+	var total_hits := red_hits + blue_hits
+	var overall_acc := (100.0 * float(total_hits) / float(total_shots)) if total_shots > 0 else 0.0
+	var winner_name := "draw"
+	if match_winner == TEAM_RED:
+		winner_name = "red"
+	elif match_winner == TEAM_BLUE:
+		winner_name = "blue"
+	# Asymmetric: which side had coop, and whether that side won
+	var coop_side := "none"
+	if coop_red and not coop_blue:
+		coop_side = "red"
+	elif coop_blue and not coop_red:
+		coop_side = "blue"
+	elif coop_red and coop_blue:
+		coop_side = "both"
+	var coop_side_won := false
+	if coop_side == "red" and winner_name == "red":
+		coop_side_won = true
+	elif coop_side == "blue" and winner_name == "blue":
+		coop_side_won = true
+	elif coop_side == "both":
+		coop_side_won = winner_name != "draw"
+	var exp_id := OS.get_environment("SIM_EXP_ID").strip_edges()
+	var exp_name := OS.get_environment("SIM_EXP_NAME").strip_edges()
+	var run_index := int(OS.get_environment("SIM_RUN_INDEX")) if not OS.get_environment("SIM_RUN_INDEX").is_empty() else 0
+	var run_id := OS.get_environment("SIM_RUN_ID").strip_edges()
+	if run_id.is_empty():
+		run_id = "match_%s" % Time.get_datetime_string_from_system(true).replace(":", "-")
+	var rec := {
+		"schema_version": 3,
+		"exp_id": exp_id,
+		"exp_name": exp_name,
+		"run_index": run_index,
+		"run_id": run_id,
+		"timestamp": Time.get_datetime_string_from_system(true),
+		"reason": reason,
+		"sim_time": snappedf(sim_time, 0.01),
+		"mode_red": ("coop" if coop_red else "solo"),
+		"mode_blue": ("coop" if coop_blue else "solo"),
+		"coop_side": coop_side,
+		"winner": winner_name,
+		"winner_team": match_winner,
+		"coop_side_won": coop_side_won,
+		"result_text": match_result_text,
+		"red_hits": red_hits,
+		"blue_hits": blue_hits,
+		"red_shots": red_shots,
+		"blue_shots": blue_shots,
+		"red_accuracy_pct": snappedf(red_acc, 0.1),
+		"blue_accuracy_pct": snappedf(blue_acc, 0.1),
+		"total_shots": total_shots,
+		"total_hits": total_hits,
+		"overall_accuracy_pct": snappedf(overall_acc, 0.1),
+		"hit_advantage_red_minus_blue": red_hits - blue_hits,
+		"red_alive": red_alive,
+		"blue_alive": blue_alive,
+		"alive_advantage_red_minus_blue": red_alive - blue_alive,
+		"fusion_assist_sum": fusion_assist_sum,
+		"fusion_valid_sum": fusion_valid_sum,
+		"fusion_neighbors_max_sum": fusion_neighbors_max_sum,
+		"detection_sum": detection_sum,
+		"control_sum": control_sum,
+		"rescue_events": rescue_events,
+		"robots": per,
+		"match_time_limit": match_time_limit,
+	}
+	if exp_protocol != null and exp_protocol.active:
+		var extra: Dictionary = exp_protocol.metrics()
+		for k in extra.keys():
+			rec[k] = extra[k]
+		rec["schema_version"] = 3
+	var line := JSON.stringify(rec)
+	print("METRICS_JSON ", line)
+	print("METRICS_SUMMARY mode=R%s/B%s winner=%s t=%.1f hits=%d:%d shots=%d:%d acc=%.1f:%.1f alive=%d:%d rescue=%d fusionA=%d" % [
+		("C" if coop_red else "S"), ("C" if coop_blue else "S"),
+		winner_name, sim_time, red_hits, blue_hits, red_shots, blue_shots,
+		red_acc, blue_acc, red_alive, blue_alive, rescue_events, fusion_assist_sum,
+	])
+	# Primary: batch path from env (one file per run for paper)
+	var out_path := OS.get_environment("SIM_METRICS_OUT").strip_edges()
+	if not out_path.is_empty():
+		var abs_out := out_path
+		if not abs_out.begins_with("/") and not abs_out.begins_with("user://") and not abs_out.begins_with("res://"):
+			abs_out = ProjectSettings.globalize_path("res://").path_join(out_path)
+		var parent := abs_out.get_base_dir()
+		DirAccess.make_dir_recursive_absolute(parent)
+		var fo := FileAccess.open(abs_out, FileAccess.WRITE)
+		if fo:
+			fo.store_string(JSON.stringify(rec, "\t"))
+			fo.store_string("\n")
+			fo.close()
+			print("METRICS_FILE ", abs_out)
+		else:
+			print("METRICS_FILE_FAIL ", abs_out, " err=", FileAccess.get_open_error())
+	# Always append to aggregate JSONL
+	var dir_proj := ProjectSettings.globalize_path("res://logs")
+	DirAccess.make_dir_recursive_absolute(dir_proj)
+	var path_proj := dir_proj.path_join("match_metrics.jsonl")
+	var f2 := FileAccess.open(path_proj, FileAccess.READ_WRITE)
+	if f2 == null:
+		f2 = FileAccess.open(path_proj, FileAccess.WRITE)
+	if f2:
+		f2.seek_end()
+		f2.store_line(line)
+		f2.close()
+	print("METRICS_JSONL ", path_proj)
+
+func _on_robot_armor_hit(robot: Dictionary, shell_dir: Vector3, attacker_id: int = -1) -> void:
+	## After being hit: sprint-strafe off the line of fire immediately.
+	## Coop: alert the organic whole — 一方有难，八方支援 (focus the attacker).
+	if not bool(robot.get("alive", true)):
+		return  # wrecks are not combat targets
+	if int(robot.get("hit_taken", 0)) >= ARMOR_HP:
+		# Safety: force eliminate if somehow still marked alive
+		_eliminate_robot(robot)
+		_check_match_winner()
+		return
+	var body: CharacterBody3D = robot["body"]
+	var my_pos: Vector3 = body.global_position
+	var inbound := shell_dir
+	inbound.y = 0.0
+	if inbound.length_squared() < 1e-6:
+		inbound = _body_forward_dir(robot)
+	else:
+		inbound = inbound.normalized()
+	# Escape perpendicular to shell path (+ a bit backward along -inbound)
+	var perp := Vector3(-inbound.z, 0.0, inbound.x)
+	var left_c := _side_clearance(body, perp)
+	var right_c := _side_clearance(body, -perp)
+	var side := perp if left_c >= right_c else -perp
+	if randf() < 0.25:
+		side = -side
+	var esc: Vector3 = my_pos + side * (2.8 + randf() * 1.6) - inbound * (1.4 + randf() * 1.2)
+	esc.x = clampf(esc.x, -FIELD_HALF + 0.8, FIELD_HALF - 0.8)
+	esc.z = clampf(esc.z, -FIELD_HALF + 0.8, FIELD_HALF - 0.8)
+	robot["ai_waypoint"] = esc
+	robot["ai_hit_from"] = inbound
+	var evade_base := 2.4 + randf() * 0.5
+	var evade_scale := 1.0
+	if exp_protocol != null and exp_protocol.active:
+		evade_scale = 1.0
+		exp_protocol.note_hit(robots, robot, attacker_id, sim_time)
+	elif team_coop != null:
+		evade_scale = team_coop.hit_evade_scale(robot)
+	robot["ai_hit_evade_t"] = evade_base * evade_scale
+	# Solo scatters; coop victim only short-dodge then rejoin team focus
+	if _robot_is_coop(robot) and team_coop != null and team_coop.prefer_no_disengage(robot):
+		robot["ai_mode"] = "engage"
+		robot["ai_disengage_t"] = minf(float(robot.get("ai_disengage_t", 0.0)), 0.35)
+	else:
+		robot["ai_mode"] = "disengage"
+		robot["ai_disengage_t"] = maxf(float(robot.get("ai_disengage_t", 0.0)), float(robot["ai_hit_evade_t"]))
+	robot["ai_want_sprint"] = true
+	robot["ai_speed_scale"] = 1.0
+	robot["ai_shots_burst"] = 0
+	# Cancel unstuck so hit-evade takes priority
+	robot["ai_unstuck_t"] = 0.0
+	robot["hit_taken"] = int(robot.get("hit_taken", 0)) + 1
+	var taken: int = int(robot["hit_taken"])
+	print("EVADE id=", robot["id"], " HP ", ARMOR_HP - taken, "/", ARMOR_HP,
+		" attacker=", attacker_id, " → ", esc)
+	# Coop mutual support: whole team switches focus to the shooter
+	if attacker_id >= 0 and team_coop != null and _robot_is_coop(robot) and not (exp_protocol != null and exp_protocol.active):
+		team_coop.on_ally_hit(robots, robot, attacker_id, sim_time)
+		set_meta("coop_rescue_events", int(get_meta("coop_rescue_events", 0)) + 1)
+	if taken >= ARMOR_HP and bool(robot.get("alive", true)):
+		_eliminate_robot(robot)
+		_check_match_winner()
+
+
+func _begin_unstuck(robot: Dictionary, body: CharacterBody3D, forward: Vector3, right: Vector3) -> void:
+	## Reverse + turn escape; prefer side with more free space.
+	var left_c := _side_clearance(body, -right)
+	var right_c := _side_clearance(body, right)
+	var turn := 1.0 if right_c >= left_c else -1.0
+	if randf() < 0.18:
+		turn = -turn
+	robot["ai_unstuck_turn"] = turn
+	robot["ai_unstuck_t"] = 0.40 + randf() * 0.30
+	robot["ai_want_sprint"] = false
+	robot["ai_speed_scale"] = 0.55
+	var away := -forward
+	away.y = 0.0
+	if away.length_squared() > 1e-6:
+		away = away.normalized()
+	var esc: Vector3 = body.global_position + away * 2.2 + right * turn * 1.8
+	esc.x = clampf(esc.x, -6.5, 6.5)
+	esc.z = clampf(esc.z, -6.5, 6.5)
+	robot["ai_waypoint"] = esc
+
+
+func _apply_unstuck(robot: Dictionary, body: CharacterBody3D, forward: Vector3, right: Vector3,
+		forward_input: float, right_input: float, delta: float) -> Vector2:
+	## Active reverse/turn while timer runs.
+	var tleft: float = float(robot.get("ai_unstuck_t", 0.0))
+	if tleft <= 0.0:
+		if forward_input > 0.2:
+			var gap := _forward_wall_gap(body, forward)
+			if gap < 0.55:
+				_begin_unstuck(robot, body, forward, right)
+				tleft = float(robot.get("ai_unstuck_t", 0.0))
+		if tleft <= 0.0:
+			return Vector2(forward_input, right_input)
+
+	robot["ai_unstuck_t"] = tleft - delta
+	var turn: float = float(robot.get("ai_unstuck_turn", 1.0))
+	var phase: float = tleft
+	# Only ~0.18s reverse poke; then turn + forward (no long reverse).
+	var f_cmd := 0.2
+	var r_cmd := turn * 1.0
+	var total_t := 0.55
+	var elapsed := total_t - phase
+	if elapsed < 0.18:
+		f_cmd = -0.35
+		r_cmd = turn * 1.0
+	elif elapsed < 0.35:
+		f_cmd = 0.15
+		r_cmd = turn * 0.95
+	else:
+		var gap2 := _forward_wall_gap(body, forward)
+		if gap2 > 0.85:
+			f_cmd = 0.9
+			r_cmd = turn * 0.25
+		else:
+			f_cmd = 0.2
+			r_cmd = turn
+	robot["ai_speed_scale"] = 0.55
+	robot["ai_want_sprint"] = false
+	return Vector2(f_cmd, r_cmd)
+
+
+func _avoidance_bias(body: CharacterBody3D, forward: Vector3, right: Vector3) -> Vector3:
+	## Returns planar steer bias (mostly along right) and forward scale in .y as scale... 
+	## Use Vector3(right_bias, forward_scale, 0).
+	var origin := body.global_position + Vector3(0.0, 0.25, 0.0)
+	var exclude: Array = [body.get_rid()]
+	var right_bias := 0.0
+	var forward_scale := 1.0
+	var rays: Array = [
+		{"dir": forward, "w": 1.0},
+		{"dir": (forward + right * 0.55).normalized(), "w": 0.7},
+		{"dir": (forward - right * 0.55).normalized(), "w": 0.7},
+		{"dir": (forward + right * 1.1).normalized(), "w": 0.45},
+		{"dir": (forward - right * 1.1).normalized(), "w": 0.45},
+	]
+	var space := get_world_3d().direct_space_state
+	for r in rays:
+		var dir: Vector3 = r["dir"]
+		dir.y = 0.0
+		if dir.length_squared() < 1e-6:
+			continue
+		dir = dir.normalized()
+		var dist := AVOID_LOOKAHEAD
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + dir * dist)
+		query.collide_with_bodies = true
+		query.collide_with_areas = false
+		query.collision_mask = 1
+		query.exclude = exclude
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var col: Object = hit.get("collider")
+		var is_obs: bool = col != null and (
+			col.is_in_group("obstacle")
+			or (col is Node and (col as Node).has_meta("is_obstacle"))
+			or col is StaticBody3D
+		)
+		# Also soft-avoid other robots
+		var is_robot: bool = col is CharacterBody3D and col != body
+		if not is_obs and not is_robot:
+			continue
+		var hit_pos: Vector3 = hit.get("position", origin + dir)
+		var gap: float = origin.distance_to(hit_pos)
+		var strength: float = clampf(1.0 - gap / dist, 0.0, 1.0) * float(r["w"])
+		if is_robot:
+			strength *= 0.65
+		# Lateral: push away from hit side
+		var side := right.dot((hit_pos - origin).normalized())
+		right_bias -= side * strength * 1.4
+		if absf(forward.dot(dir)) > 0.75:
+			forward_scale = minf(forward_scale, 1.0 - strength * 0.95)
+			if gap < 0.7:
+				forward_scale = minf(forward_scale, 0.12)
+				right_bias += (-1.0 if side >= 0.0 else 1.0) * 0.55
+	# Soft separation from other robots
+	for other in robots:
+		var ob: CharacterBody3D = other["body"]
+		if ob == body:
+			continue
+		var delta: Vector3 = body.global_position - ob.global_position
+		delta.y = 0.0
+		var dlen := delta.length()
+		if dlen < 0.01 or dlen > 2.2:
+			continue
+		var push := (2.2 - dlen) / 2.2
+		right_bias += right.dot(delta.normalized()) * push * 0.8
+		if forward.dot(-delta.normalized()) > 0.5:
+			forward_scale = minf(forward_scale, 1.0 - push * 0.5)
+	# z>0.5 => nose nearly blocked → reverse instead of crawling into wall.
+	var reverse_hint := 1.0 if forward_scale < 0.22 else 0.0
+	return Vector3(right_bias, clampf(forward_scale, 0.0, 1.0), reverse_hint)
+
+
+
+func _build_robots() -> void:
+	robots.clear()
+	for spawn in SPAWN_POSES:
+		robots.append(_create_robot(int(spawn["id"]), int(spawn["team"]), spawn["pos"], float(spawn["yaw"])))
+	# Cache original gun local dir for every robot (source of truth for drive/fire).
+	for r in robots:
+		var body_r: Node3D = r["body"]
+		var asm: Node3D = r.get("assembly", null)
+		var vr: Node3D = null
+		if asm != null:
+			vr = asm.get_node_or_null("ChassisVisual") as Node3D
+		_cache_gun_local(r, vr)
+		# Face enemy so ORIGINAL gun points at enemy camp.
+		_face_enemy_camp(body_r, int(r["team"]))
+		r["command_yaw"] = body_r.rotation.y
+		body_r.force_update_transform()
+		var tur: Node3D = null
+		if vr != null:
+			tur = _find_named_node3d(vr, "node_id6")
+		var tgz := Vector3.ZERO
+		var tw := Vector3.ZERO
+		if tur != null:
+			tur.force_update_transform()
+			tw = tur.global_position - body_r.global_position
+			tgz = -tur.global_transform.basis.z
+			tgz.y = 0.0
+			if tgz.length_squared() > 1e-8:
+				tgz = tgz.normalized()
+		var bf := _gun_world_dir(r)
+		var adot := bf.dot(tgz) if tgz.length_squared() > 0.0 else -9.0
+		print("GUN_READY id=", r["id"], " team=", r["team"],
+			" gun_world=", bf,
+			" turret_dir=", tgz,
+			" turret_off=", tw,
+			" body_yaw=", body_r.rotation.y,
+			" align_dot=", adot)
+
+
+func _create_robot(robot_id: int, team: int, pos: Vector3, yaw: float) -> Dictionary:
+	var body := CharacterBody3D.new()
+	var slot := robot_id % ROBOTS_PER_TEAM  # 0..2
+	var number := slot + 1  # display 1..3
+	body.name = ("R%d" if team == TEAM_RED else "B%d") % number
+	body.position = pos
+	body.collision_layer = 1
+	body.collision_mask = 1  # floor + obstacles + other robots (alive or wreck)
+	body.motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
+	body.safe_margin = 0.06
+	add_child(body)
+	body.set_meta("team", team)
+	body.set_meta("robot_id", robot_id)
+	# Keep body yaw=0 while building/aligning the GLB mesh.
+	# Facing enemy AFTER mesh align — if we face first (blue~PI), align bakes
+	# world rotation into local xforms and the original gun points rear for blue.
+	body.rotation = Vector3.ZERO
+	var team_color := Color(1.0, 0.12, 0.12) if team == TEAM_RED else Color(0.12, 0.35, 1.0)
+
+	# Single rigid assembly under body: ALL visual + armor + gimbal share this pivot.
+	# Body origin == assembly origin == rotation center. Prevents desync on yaw/move.
+	var assembly := Node3D.new()
+	assembly.name = "VehicleAssembly"
+	body.add_child(assembly)
+
+	# --- Chassis mesh (GLB), recentered so its geometric center sits on assembly origin ---
+	var visual_root := Node3D.new()
+	visual_root.name = "ChassisVisual"
+	# Do NOT yaw visual_root before align — align uses global transforms.
+	# Apply mesh yaw on ChassisAligned holder AFTER align (reliable).
+	visual_root.rotation = Vector3.ZERO
+	assembly.add_child(visual_root)
+
+	var chassis_size := CHASSIS_COLLISION_SIZE
+	var model := _instantiate_chassis_model()
+	if model != null:
+		visual_root.add_child(model)
+		chassis_size = _align_chassis_model(model, visual_root)
+		# Both teams: rotate GLB so original barrel points body -Z (Godot forward).
+		var _yaw_fix := _auto_align_mesh_to_original_gun(visual_root, body)
+		print("MUZZLE_ALIGN id=", robot_id, " team=", team, " mesh_yaw=", CHASSIS_VISUAL_YAW_OFFSET)
+	else:
+		var base := MeshInstance3D.new()
+		var base_mesh := BoxMesh.new()
+		base_mesh.size = CHASSIS_COLLISION_SIZE
+		base.mesh = base_mesh
+		base.position = Vector3(0, CHASSIS_COLLISION_SIZE.y * 0.5, 0)
+		base.material_override = _material(team_color.darkened(0.35), 0.65)
+		visual_root.add_child(base)
+		push_warning("Chassis GLB missing; using box fallback for robot %d" % robot_id)
+
+	var base_collision := CollisionShape3D.new()
+	var base_shape := BoxShape3D.new()
+	base_shape.size = chassis_size
+	base_collision.shape = base_shape
+	# Collision centered on body/assembly origin (same pivot as mesh/armor/gimbal).
+	base_collision.position = Vector3(0, chassis_size.y * 0.5, 0)
+	body.add_child(base_collision)
+
+	# Compact team number on the roof (team color = mark). Not billboarded / not huge.
+	var roof_y: float = chassis_size.y + 0.02
+	var number_label := Label3D.new()
+	number_label.name = "TeamNumber"
+	number_label.text = str(number)
+	number_label.font_size = 64
+	number_label.outline_size = 8
+	number_label.outline_modulate = Color(0, 0, 0, 0.9)
+	number_label.modulate = team_color
+	number_label.pixel_size = 0.0012
+	number_label.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	number_label.position = Vector3(0, roof_y, 0)
+	number_label.rotation.x = deg_to_rad(-90.0)  # flat on roof, readable from above
+	assembly.add_child(number_label)
+
+	# Side numbers for FPS readability
+	for side_sign in [-1.0, 1.0]:
+		var side_lbl := Label3D.new()
+		side_lbl.text = str(number)
+		side_lbl.font_size = 48
+		side_lbl.outline_size = 6
+		side_lbl.outline_modulate = Color(0, 0, 0, 0.9)
+		side_lbl.modulate = team_color
+		side_lbl.pixel_size = 0.0010
+		side_lbl.position = Vector3(side_sign * chassis_size.x * 0.52, chassis_size.y * 0.55, 0)
+		side_lbl.rotation.y = PI * 0.5 if side_sign > 0.0 else -PI * 0.5
+		assembly.add_child(side_lbl)
+
+
+	# Wireless signal rings only (no fake cylinder). Above original GLB antenna tip.
+	var comm_root := Node3D.new()
+	comm_root.name = "CommSignal"
+	var ant_tip_local := _find_original_antenna_tip_local(visual_root, assembly)
+	if ant_tip_local == Vector3.ZERO:
+		# Fallback: slightly above roof near typical S1 antenna mount.
+		ant_tip_local = Vector3(0.0, roof_y, -chassis_size.z * 0.08)
+	# Rings sit just above the vehicle's original antenna (not a fake stick).
+	comm_root.position = ant_tip_local + Vector3(0.0, 0.03, 0.0)
+	assembly.add_child(comm_root)
+	var signal_rings: Array = []
+	# Concentric circle *lines* (thin tori / ring strokes), different radii — not solid discs.
+	for ri in range(4):
+		var ring := MeshInstance3D.new()
+		var radius := 0.05 + float(ri) * 0.04
+		ring.mesh = _make_signal_ring_mesh(radius, 0.006)
+		ring.position = Vector3(0.0, 0.0, 0.0)
+		var rm := StandardMaterial3D.new()
+		rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		rm.albedo_color = Color(team_color.r, team_color.g, team_color.b, 0.75)
+		rm.emission_enabled = true
+		rm.emission = team_color
+		rm.emission_energy_multiplier = 4.0
+		rm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		ring.material_override = rm
+		comm_root.add_child(ring)
+		signal_rings.append(ring)
+
+	# Gimbal control axes on the assembly. Real GLB turret mesh is reparented onto these
+	# so auto-aim rotates the actual gun (not a fake cylinder).
+	var yaw_axis := Node3D.new()
+	yaw_axis.name = "YawAxis"
+	# Pivot roughly at mid-upper body; refined after turret bind.
+	yaw_axis.position = Vector3(0, maxf(roof_y * 0.55, chassis_size.y * 0.45), 0)
+	assembly.add_child(yaw_axis)
+	var pitch_axis := Node3D.new()
+	pitch_axis.name = "PitchAxis"
+	yaw_axis.add_child(pitch_axis)
+
+	# Bind imported turret (node_id6) under yaw/pitch if present.
+	# Keep full GLB (chassis+turret) under ChassisVisual so body.yaw turns the muzzle.
+	# Do NOT reparent turret — that was scrambling world facing so both teams looked the same.
+	# yaw/pitch axes still drive auto-aim camera + shell direction.
+	# (Face enemy only AFTER mesh align at neutral body yaw — see end of create.)
+
+
+	# Armors on assembly pivot. Elliptical layout: front/back use length (Z),
+	# left/right use width (X) so side plates sit on the hull (not floating far out).
+	var armor_rx: float = chassis_size.x * 0.40  # sides — tighter against body
+	var armor_rz: float = chassis_size.z * 0.56  # front/back slightly outward
+	var armor_height: float = minf(chassis_size.y * 0.22, 0.16)
+	var armors: Array = []
+	for i in range(4):
+		# i=0 +Z, i=1 +X, i=2 -Z, i=3 -X
+		var angle := i * TAU / 4.0
+		var armor := _create_armor(team, number, robot_id)
+		armor.position = Vector3(sin(angle) * armor_rx, armor_height, cos(angle) * armor_rz)
+		armor.rotation.y = angle
+		armor.rotate_object_local(Vector3.RIGHT, deg_to_rad(-10.0))
+		assembly.add_child(armor)
+		armors.append(armor)
+
+	var viewport := SubViewport.new()
+	viewport.name = "Vision_%d" % robot_id
+	viewport.size = camera_size
+	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	viewport.msaa_3d = Viewport.MSAA_DISABLED
+	viewport.own_world_3d = false
+	add_child(viewport)
+
+	var sim_camera := Camera3D.new()
+	sim_camera.fov = camera_fov
+	sim_camera.keep_aspect = Camera3D.KEEP_HEIGHT
+	sim_camera.current = true
+	# Sit slightly above the armor ring so the front plate does not fill the lens.
+	sim_camera.position = Vector3(0, 0.06, 0.02)
+	viewport.add_child(sim_camera)
+
+	# All robots start fully autonomous. Selection only marks focus until manual mode.
+	var is_player := robot_id == player_robot_id
+	# Mesh already aligned at body yaw=0. Now face enemy (original gun = body -Z).
+	var mesh_yaw2: float = _auto_align_mesh_to_original_gun(visual_root, body)
+	_face_enemy_camp(body, team)
+	body.force_update_transform()
+	assembly.force_update_transform()
+	visual_root.force_update_transform()
+	var shell_dir: Vector3 = -body.global_transform.basis.z
+	shell_dir.y = 0.0
+	if shell_dir.length_squared() > 1e-8:
+		shell_dir = shell_dir.normalized()
+	var gun_chk: Vector3 = shell_dir
+	var turret_chk: Node3D = _find_named_node3d(visual_root, "node_id6")
+	if turret_chk != null:
+		var gww: Vector3 = -turret_chk.global_transform.basis.z
+		gww.y = 0.0
+		if gww.length_squared() > 1e-8:
+			gun_chk = gww.normalized()
+	var hy := 0.0
+	var hn := visual_root.get_node_or_null("ChassisAligned")
+	if hn is Node3D:
+		hy = (hn as Node3D).rotation.y
+	print("FINAL FACE id=", robot_id, " team=", team,
+		" body_yaw=", body.rotation.y,
+		" holder_y=", hy,
+		" gun_local=", gun_chk,
+		" shell_dir=", shell_dir,
+		" expect_z=", (-1.0 if team == TEAM_RED else 1.0),
+		" mesh_yaw=", mesh_yaw2)
+
+	return {
+		"id": robot_id,
+		"team": team,
+		"number": number,
+		"body": body,
+		"assembly": assembly,
+		"yaw_axis": yaw_axis,
+		"pitch_axis": pitch_axis,
+		"viewport": viewport,
+		"sim_camera": sim_camera,
+		"armors": armors,
+		"chassis_size": chassis_size,
+		"is_player": is_player,
+		"auto_aim_enabled": true,
+		"command_yaw": body.rotation.y,
+		"command_pitch": 0.0,
+		"command_yaw_velocity": 0.0,
+		"command_yaw_acceleration": 0.0,
+		"command_pitch_velocity": 0.0,
+		"command_pitch_acceleration": 0.0,
+		"yaw_velocity": 0.0,
+		"pitch_velocity": 0.0,
+		"yaw_speed_integral": 0.0,
+		"pitch_speed_integral": 0.0,
+		"chassis_yaw_velocity": 0.0,
+		"chassis_gyro_direction": GYRO_DISABLED,
+		"manual_yaw_target": body.rotation.y,
+		"manual_pitch_target": 0.0,
+		"manual_fire_pressed": false,
+		"shoot_cooldown": 0.0,
+		"shots": 0,
+		"hits": 0,
+		"last_result_timestamp": -1,
+		"last_tracker_state": "init",
+		"last_armor_count": 0,
+	"vision_has_target": false,
+	"vision_control": false,
+	"vision_shoot": false,
+	"vision_age": 99.0,
+	"vision_lock_quality": 0.0,
+	"vision_scan_dir": 1.0,
+	"vision_last_see_t": -99.0,
+		"last_total_ms": 0.0,
+		"result_count": 0,
+		"detection_count": 0,
+		"control_count": 0,
+		"fusion_valid_count": 0,
+		"fusion_neighbor_count_max": 0,
+		"fusion_assist_count": 0,
+		"last_fusion_neighbors": 0,
+		"alive": true,
+		"hit_taken": 0,
+		"comm_root": comm_root,
+		"comm_rings": signal_rings,
+		"ai_camp_t": 0.0,
+		"ai_camp_anchor": Vector3.ZERO,
+		# Per-robot AI personality / role (asymmetric; not mirrored by team)
+		"ai_role": robot_id % 3,  # 0 rush, 1 mid, 2 flank/cover
+		"ai_flank": 1.0 if (robot_id % 2) == 0 else -1.0,
+		"ai_prefer_range": (1.6 if (robot_id % 3) == 0 else (2.1 if (robot_id % 3) == 1 else 2.6)) + randf_range(-0.2, 0.25),
+		"ai_aggression": (0.95 if (robot_id % 3) == 0 else (0.78 if (robot_id % 3) == 1 else 0.65)) + randf_range(-0.05, 0.1),
+		"ai_noise_phase": randf() * TAU,
+		"ai_noise_freq": 0.45 + randf() * 1.8,
+		"ai_strafe_gain": 0.35 + randf() * 0.85,
+		"ai_target_id": -1,
+		"ai_repath_t": randf() * 1.5,
+		"ai_orbit_dir": 1.0 if randf() > 0.5 else -1.0,
+		"ai_waypoint": Vector3.ZERO,
+		"ai_hold_t": 0.0,
+		"ai_style_seed": float(robot_id) * 1.7 + randf() * 10.0,
+		"ai_mode": "hunt",  # hunt | engage | disengage
+		"ai_duel_t": 0.0,
+		"ai_disengage_t": 0.0,
+		"ai_speed_scale": 1.0,  # 0..1 maps turn→sprint
+		"ai_want_sprint": false,
+		"ai_shots_burst": 0,
+		"ai_brave": 0.35 + randf() * 0.55,
+		"ai_unstuck_t": 0.0,
+		"ai_unstuck_turn": 1.0,
+		"ai_stuck_time": 0.0,
+		"ai_last_pos": Vector3.ZERO,
+		"ai_hit_evade_t": 0.0,
+		"ai_hit_from": Vector3.ZERO,
+	}
+
+
+
+
+func _face_enemy_camp(body: Node3D, team: int) -> void:
+	## Face enemy camp with EXPLICIT yaw (same formula red/blue).
+	## Red (+Z half) faces -Z (toward blue). Blue (-Z half) faces +Z (toward red).
+	## Never use look_at — it has edge cases; never leave blue facing away.
+	var enemy_z := -5.0 if team == TEAM_RED else 5.0
+	var from := body.global_position
+	var dir := Vector3(0.0 - from.x, 0.0, enemy_z - from.z)
+	if dir.length_squared() < 1e-6:
+		# Pure face: red yaw=0 → -Z; blue yaw=PI → +Z
+		_set_body_yaw(body, 0.0 if team == TEAM_RED else PI)
+	else:
+		_set_body_yaw(body, _yaw_from_dir(dir))
+	# Final assert: nose (-Z) must point toward enemy half
+	var fwd := -body.global_transform.basis.z
+	fwd.y = 0.0
+	var expect := Vector3(0.0, 0.0, enemy_z - from.z)
+	if expect.length_squared() < 1e-8:
+		expect = Vector3(0.0, 0.0, -1.0 if team == TEAM_RED else 1.0)
+	expect = expect.normalized()
+	if fwd.length_squared() > 1e-6:
+		fwd = fwd.normalized()
+		if fwd.dot(expect) < 0.5:
+			_set_body_yaw(body, wrapf(body.rotation.y + PI, -PI, PI))
+			fwd = (-body.global_transform.basis.z)
+			fwd.y = 0.0
+			fwd = fwd.normalized()
+	print("FACE_VERIFY team=", team, " yaw=", body.rotation.y,
+		" fwd_z=", fwd.z, " expect_enemy_z=", enemy_z,
+		" aligned=", fwd.dot(expect) > 0.5)
+
+
+func _create_armor(team: int, number: int, owner_robot_id: int = -1) -> Node3D:
+	var armor_root := Node3D.new()
+	var panel := MeshInstance3D.new()
+	var panel_mesh := BoxMesh.new()
+	panel_mesh.size = Vector3(INFANTRY_ARMOR_PANEL_SIZE.x, INFANTRY_ARMOR_PANEL_SIZE.y, 0.012)
+	panel.mesh = panel_mesh
+	panel.material_override = _material(Color("#17191b"), 0.35)
+	armor_root.add_child(panel)
+
+	# Saturated unshaded lightbars so OpenCV color detector (and YOLO) can see them
+	# in SubViewport captures (emission alone is often washed out).
+	var bar_color := Color(1.0, 0.05, 0.05) if team == TEAM_RED else Color(0.05, 0.25, 1.0)
+	for side in [-1.0, 1.0]:
+		var bar := MeshInstance3D.new()
+		var bar_mesh := BoxMesh.new()
+		bar_mesh.size = Vector3(0.014, INFANTRY_LIGHTBAR_LENGTH, 0.012)
+		bar.mesh = bar_mesh
+		bar.position = Vector3(side * INFANTRY_LIGHTBAR_SPACING * 0.5, 0, 0.014)
+		var bar_material := StandardMaterial3D.new()
+		bar_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		bar_material.albedo_color = bar_color
+		bar_material.emission_enabled = true
+		bar_material.emission = bar_color
+		bar_material.emission_energy_multiplier = 8.0
+		bar.material_override = bar_material
+		armor_root.add_child(bar)
+
+	var label := Label3D.new()
+	label.text = str(number)
+	label.font_size = 96
+	label.outline_size = 8
+	label.outline_modulate = Color(0, 0, 0, 0.9)
+	# Armor digit uses team color for vision / human readability.
+	label.modulate = Color(1.0, 0.1, 0.1) if team == TEAM_RED else Color(0.15, 0.4, 1.0)
+	label.position.z = 0.02
+	label.pixel_size = 0.00065
+	armor_root.add_child(label)
+
+	var hitbox := Area3D.new()
+	hitbox.add_to_group("armor")
+	hitbox.set_meta("team", team)
+	hitbox.set_meta("robot_id", owner_robot_id)
+	var shape_node := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	# Thick along local Z so 23m/s bullets cannot tunnel through in one physics step.
+	# Only these 4 plates register hits (projectile ignores hull).
+	shape.size = Vector3(INFANTRY_ARMOR_PANEL_SIZE.x * 1.25, INFANTRY_ARMOR_PANEL_SIZE.y * 1.25, 0.28)
+	shape_node.shape = shape
+	hitbox.add_child(shape_node)
+	hitbox.collision_layer = 2
+	hitbox.collision_mask = 0
+	hitbox.monitoring = true
+	hitbox.monitorable = true
+	armor_root.add_child(hitbox)
+	return armor_root
+
+
+func _build_cameras() -> void:
+	orbit_pivot = Node3D.new()
+	orbit_pivot.name = "OrbitPivot"
+	orbit_pivot.position = orbit_focus
+	add_child(orbit_pivot)
+
+	overview_camera = Camera3D.new()
+	overview_camera.name = "OverviewCamera"
+	overview_camera.current = overview_mode
+	overview_camera.fov = 55.0
+	orbit_pivot.add_child(overview_camera)
+	_apply_orbit_camera()
+
+	player_camera = Camera3D.new()
+	player_camera.name = "PlayerCamera"
+	player_camera.fov = camera_fov
+	player_camera.keep_aspect = Camera3D.KEEP_HEIGHT
+	player_camera.current = not overview_mode
+	var player: Dictionary = robots[player_robot_id]
+	player["pitch_axis"].add_child(player_camera)
+
+
+func _set_active_camera() -> void:
+	if overview_camera == null or player_camera == null:
+		return
+	overview_camera.current = overview_mode
+	player_camera.current = not overview_mode
+	if overview_mode:
+		# Always reframe from side-upper of current car when entering observe mode.
+		_orbit_focus_on_player()
+
+
+func _apply_orbit_camera() -> void:
+	if overview_camera == null or orbit_pivot == null:
+		return
+	# pitch: 0 = horizon, negative = look down. Keep side-upper friendly range.
+	orbit_pitch = clampf(orbit_pitch, -1.45, -0.12)
+	orbit_distance = clampf(orbit_distance, orbit_min_distance, orbit_max_distance)
+	orbit_pivot.global_position = orbit_focus
+	orbit_pivot.rotation = Vector3(0.0, orbit_yaw, 0.0)
+	# Spherical offset in pivot space: behind (+Z after yaw) and above.
+	var cp := cos(orbit_pitch)  # horizontal factor
+	var sp := sin(orbit_pitch)  # negative => up when using -sp
+	overview_camera.position = Vector3(0.0, -sp * orbit_distance, cp * orbit_distance)
+	# Point camera at focus (pivot origin). Avoid look_at when co-located.
+	if overview_camera.position.length_squared() > 1e-6:
+		overview_camera.look_at(orbit_pivot.global_position, Vector3.UP)
+
+
+func _orbit_focus_on_player() -> void:
+	## Frame current robot from side-upper (see whole car, not inside turret).
+	if robots.is_empty():
+		orbit_focus = Vector3.ZERO
+		orbit_distance = 12.0
+		orbit_pitch = -0.70
+		orbit_yaw = 0.45
+	else:
+		var body: Node3D = robots[player_robot_id]["body"]
+		orbit_focus = body.global_position + Vector3(0.0, 0.18, 0.0)
+		# Side-upper relative to car heading: offset yaw from body facing.
+		var body_yaw: float = body.rotation.y
+		orbit_yaw = body_yaw + 0.95  # ~54° to the side
+		orbit_pitch = -0.52  # ~30° look-down from side
+		orbit_distance = 4.8  # close enough to see whole S1 clearly
+	_apply_orbit_camera()
+
+
+func _orbit_focus_field() -> void:
+	## Full-field top-down (Tab default).
+	orbit_focus = Vector3.ZERO
+	orbit_yaw = 0.0
+	orbit_pitch = -1.28
+	orbit_distance = 22.0
+	_apply_orbit_camera()
+
+
+
+func _build_ui() -> void:
+	var ui := CanvasLayer.new()
+	add_child(ui)
+	hud_label = Label.new()
+	hud_label.position = Vector2(14, 12)
+	hud_label.add_theme_font_size_override("font_size", 11)
+	hud_label.text = "3v3 INITIALIZING"
+	ui.add_child(hud_label)
+
+	config_panel = PanelContainer.new()
+	config_panel.visible = false
+	config_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	config_panel.offset_left = -320.0
+	config_panel.offset_top = 48.0
+	config_panel.offset_right = -12.0
+	config_panel.offset_bottom = 320.0
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.035, 0.055, 0.065, 0.94)
+	panel_style.border_color = Color(0.35, 0.55, 0.58, 0.9)
+	panel_style.set_border_width_all(1)
+	config_panel.add_theme_stylebox_override("panel", panel_style)
+	ui.add_child(config_panel)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 6)
+	config_panel.add_child(content)
+	var title := Label.new()
+	title.text = "3v3 RUNTIME"
+	content.add_child(title)
+	width_spin = _add_spin_row(content, "Width", 320, 1280, 16, camera_size.x)
+	height_spin = _add_spin_row(content, "Height", 240, 720, 16, camera_size.y)
+	fps_spin = _add_spin_row(content, "Per-robot Hz", 1, 30, 1, camera_hz)
+	autofire_check = CheckButton.new()
+	autofire_check.text = "Auto fire (all AI)"
+	autofire_check.button_pressed = auto_fire_all
+	content.add_child(autofire_check)
+	ai_check = CheckButton.new()
+	ai_check.text = "AI chassis/aim"
+	ai_check.button_pressed = ai_enabled
+	content.add_child(ai_check)
+	var apply_btn := Button.new()
+	apply_btn.text = "Apply"
+	apply_btn.pressed.connect(_apply_runtime_panel)
+	content.add_child(apply_btn)
+	config_status_label = Label.new()
+	config_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(config_status_label)
+
+	var help := Label.new()
+	help_label = help
+	help.position = Vector2(12, 700)
+	help.size = Vector2(920, 48)
+	help.add_theme_font_size_override("font_size", 10)
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	help.size = Vector2(900, 80)
+	help.text = "【红蓝PK】Tab俯视 | T自动/手动 | 1-6选车 | R重置 | 当前规则见左上角 | 击破3车或时限命中多者胜"
+	ui.add_child(help)
+
+	combat_hud_label = Label.new()
+	combat_hud_label.position = Vector2(12, 400)
+	combat_hud_label.add_theme_font_size_override("font_size", 11)
+	combat_hud_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.75))
+	combat_hud_label.text = "COMBAT"
+	ui.add_child(combat_hud_label)
+
+	# Center video-aim reticle (screen space)
+	aim_reticle = Label.new()
+	aim_reticle.text = "+"
+	aim_reticle.add_theme_font_size_override("font_size", 36)
+	aim_reticle.add_theme_color_override("font_color", Color(0.2, 1.0, 0.35, 0.95))
+	aim_reticle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	aim_reticle.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ui.add_child(aim_reticle)
+	aim_status_label = Label.new()
+	aim_status_label.add_theme_font_size_override("font_size", 12)
+	aim_status_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.45))
+	aim_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ui.add_child(aim_status_label)
+
+
+func _add_spin_row(parent: Container, title: String, minimum: float, maximum: float,
+		step: float, initial: float) -> SpinBox:
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = title
+	label.custom_minimum_size = Vector2(110, 0)
+	row.add_child(label)
+	var spin := SpinBox.new()
+	spin.min_value = minimum
+	spin.max_value = maximum
+	spin.step = step
+	spin.value = initial
+	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spin)
+	parent.add_child(row)
+	return spin
+
+
+func _initialize_extension() -> void:
+	if not ClassDB.class_exists("AutoAimBridge"):
+		hud_label.text = "3v3 VISION OFFLINE (no AutoAimBridge)"
+		push_error("AutoAimBridge GDExtension class missing")
+		return
+	bridge = ClassDB.instantiate("AutoAimBridge")
+	base_config_path = ProjectSettings.globalize_path("res://configs/sim.yaml")
+	var runtime_resource := "res://configs/sim.runtime.yaml"
+	runtime_config_path = ProjectSettings.globalize_path(runtime_resource) \
+		if FileAccess.file_exists(runtime_resource) else ""
+	var status: Dictionary
+	# GUI debug window only for player robot to avoid OpenCV multi-window issues.
+	if not runtime_config_path.is_empty() and bridge.has_method("initialize_with_runtime"):
+		status = bridge.initialize_with_runtime(base_config_path, runtime_config_path, player_robot_id)
+	else:
+		status = bridge.initialize(base_config_path)
+	extension_ready = bool(status.get("ok", false))
+	if extension_ready:
+		_apply_camera_config(status)
+		if bullet_speed < 6.0 or bullet_speed > 20.0:
+			bullet_speed = 10.0
+		print("SIM FEEL: muzzle=", bullet_speed, " vision=", camera_size, " @", camera_hz, "Hz (queue-backed)")
+	var msg := str(status.get("message", "unknown"))
+	print("AutoAimBridge 3v3: ", msg, " max_robots=", status.get("max_robots", "?"))
+	hud_label.text = "3v3 VISION ONLINE" if extension_ready else ("3v3 VISION OFFLINE: " + msg)
+
+
+
+func _read_config_float(key: String, default_value: float) -> float:
+	## Lightweight YAML scalar reader for sim.yaml / sim.runtime.yaml.
+	var paths: Array = [
+		ProjectSettings.globalize_path("res://configs/sim.yaml"),
+		ProjectSettings.globalize_path("res://configs/sim.runtime.yaml"),
+	]
+	var found := default_value
+	var re := RegEx.new()
+	re.compile("^\\s*" + key + "\\s*:\\s*([-+0-9.eE]+)\\s*$")
+	for path in paths:
+		if path.is_empty() or not FileAccess.file_exists(path):
+			continue
+		var f := FileAccess.open(path, FileAccess.READ)
+		if f == null:
+			continue
+		while not f.eof_reached():
+			var line := f.get_line()
+			var m := re.search(line)
+			if m != null:
+				found = float(m.get_string(1))
+		f.close()
+	return found
+
+
+func _apply_camera_config(config: Dictionary) -> void:
+	# Prefer lean defaults for multi-robot; YAML may request higher rates.
+	var cfg_w := int(config.get("image_width", camera_size.x))
+	var cfg_h := int(config.get("image_height", camera_size.y))
+	if FileAccess.file_exists("res://configs/sim.runtime.yaml"):
+		cfg_w = mini(cfg_w, 320)
+		cfg_h = mini(cfg_h, 240)
+	# Cap vision resolution for 6x SubViewport performance on GPU.
+	camera_size = Vector2i(mini(cfg_w, 320), mini(cfg_h, 240))
+	# Cap per-robot rate so total worker load stays realistic on CPU YOLO.
+	camera_hz = clampf(float(config.get("camera_fps", camera_hz)), 1.0, 4.0)
+	# Allow up to 4 Hz/robot for vision closed-loop AI (was hard-capped at 1).
+	pass
+	camera_fov = clampf(float(config.get("fov_degrees", camera_fov)), 1.0, 179.0)
+	camera_exposure_multiplier = maxf(0.01, float(config.get("exposure_multiplier", camera_exposure_multiplier)))
+	camera_gamma = maxf(0.01, float(config.get("gamma", camera_gamma)))
+	# Slow readable shell (~10 m/s) for visible flight path.
+	var yaml_bs := _read_config_float("bullet_speed", bullet_speed)
+	var pick_bs := yaml_bs if yaml_bs > 1.0 else 10.0
+	if pick_bs < 6.0 or pick_bs > 20.0:
+		pick_bs = 10.0
+	bullet_speed = clampf(pick_bs, 6.0, 20.0)
+	planner_max_yaw_acc = maxf(1.0, float(config.get("max_yaw_acc", planner_max_yaw_acc)))
+	planner_max_pitch_acc = maxf(1.0, float(config.get("max_pitch_acc", planner_max_pitch_acc)))
+	auto_aim_yaw_velocity_feedforward = float(config.get(
+		"auto_aim_yaw_velocity_feedforward", auto_aim_yaw_velocity_feedforward))
+	auto_aim_yaw_acceleration_feedforward = float(config.get(
+		"auto_aim_yaw_acceleration_feedforward", auto_aim_yaw_acceleration_feedforward))
+	auto_aim_pitch_velocity_feedforward = float(config.get(
+		"auto_aim_pitch_velocity_feedforward", auto_aim_pitch_velocity_feedforward))
+	auto_aim_pitch_acceleration_feedforward = float(config.get(
+		"auto_aim_pitch_acceleration_feedforward", auto_aim_pitch_acceleration_feedforward))
+	if world_environment != null:
+		world_environment.tonemap_exposure = maxf(0.01, float(config.get("tonemap_exposure", 1.0)))
+		world_environment.ambient_light_energy = maxf(0.0, float(config.get("ambient_light_energy", 0.8)))
+	if sun_light != null:
+		sun_light.light_energy = maxf(0.0, float(config.get("sun_energy", 1.1)))
+	for robot in robots:
+		robot["viewport"].size = camera_size
+		robot["sim_camera"].fov = camera_fov
+	if player_camera != null:
+		player_camera.fov = camera_fov
+	if width_spin != null:
+		width_spin.set_value_no_signal(camera_size.x)
+		height_spin.set_value_no_signal(camera_size.y)
+		fps_spin.set_value_no_signal(camera_hz)
+	if exp_protocol != null and exp_protocol.active:
+		exp_protocol.apply_camera(self)
+	print("3v3 camera: %dx%d @ %.1f Hz/robot FOV %.1f muzzle %.1f" % [
+		camera_size.x, camera_size.y, camera_hz, camera_fov, bullet_speed])
+
+
+func _apply_runtime_panel() -> void:
+	camera_size = Vector2i(int(width_spin.value), int(height_spin.value))
+	camera_hz = clampf(fps_spin.value, 1.0, 15.0)
+	auto_fire_all = autofire_check.button_pressed
+	ai_enabled = ai_check.button_pressed
+	for robot in robots:
+		robot["viewport"].size = camera_size
+	config_status_label.text = "Applied panel settings (no worker restart)"
+
+
+func _physics_process(delta: float) -> void:
+	sim_time += delta
+	_check_match_timeout()
+	if exp_protocol != null and exp_protocol.active and not match_over:
+		exp_protocol.update(self, sim_time)
+	elif team_coop != null and coop_mode and not match_over:
+		team_coop.update(robots, sim_time)
+	_update_comm_signals(delta)
+	if match_over:
+		if OS.get_environment("SIM_AUTO_QUIT") in ["1", "true", "yes"]:
+			if _quit_countdown < 0.0:
+				_quit_countdown = 2.5
+			else:
+				_quit_countdown -= delta
+				if _quit_countdown <= 0.0:
+					print("SIM_AUTO_QUIT")
+					get_tree().quit()
+		_update_hud()
+		return
+	for robot in robots:
+		robot["shoot_cooldown"] = maxf(0.0, float(robot["shoot_cooldown"]) - delta)
+		_update_robot_chassis(robot, delta)
+		_update_robot_gimbal(robot, delta)
+		_update_robot_sensor_transform(robot)
+		var is_manual_player := manual_control_mode and bool(robot.get("is_player", false))
+		# Manual fire (Space / LMB held)
+		if is_manual_player and bool(robot["manual_fire_pressed"]) and float(robot["shoot_cooldown"]) <= 0.0:
+			_fire_projectile(robot)
+			robot["shoot_cooldown"] = 0.12
+		# AI combat for everyone not under manual human control
+		elif (not is_manual_player) and auto_fire_all and ai_enabled and bool(robot.get("alive", true)) and bool(robot.get("auto_aim_enabled", true)):
+			# Vision closed-loop AI (+ bore-sight when two cars face each other).
+			robot["vision_age"] = float(robot.get("vision_age", 99.0)) + delta
+			if float(robot["vision_age"]) > 2.4:
+				robot["vision_has_target"] = false
+				if int(robot.get("last_armor_count", 0)) <= 0:
+					robot["vision_control"] = false
+					robot["vision_shoot"] = false
+					robot["vision_lock_quality"] = 0.0
+			# Fair protocol aims from the camera or the fused track, not from body coordinates.
+			if not _vision_target_fresh(robot, 2.5) and not (exp_protocol != null and exp_protocol.active):
+				var bore: Variant = _find_enemy_on_muzzle_line(robot)
+				if bore != null:
+					var to_b: Vector3 = bore["body"].global_position - robot["body"].global_position
+					to_b.y = 0.0
+					if to_b.length_squared() > 1e-4:
+						robot["command_yaw"] = _yaw_from_dir(to_b)
+						robot["command_pitch"] = 0.0
+				else:
+					var soft: Variant = _pick_forward_visible_enemy(robot)
+					if soft != null:
+						var to_s: Vector3 = soft["body"].global_position - robot["body"].global_position
+						to_s.y = 0.0
+						if to_s.length() > 0.5 and to_s.length() < MUZZLE_LINE_RANGE_MAX:
+							robot["command_yaw"] = _yaw_from_dir(to_s)
+							robot["command_pitch"] = 0.0
+			if exp_protocol != null and exp_protocol.active:
+				exp_protocol.apply_aim(self, robot, sim_time)
+			_update_ai_combat_mode_vision(robot, delta)
+			# Coop organic whole: always hard-aim shared focus target
+			if not (exp_protocol != null and exp_protocol.active):
+				_coop_force_aim_focus(robot)
+			var mode: String = str(robot.get("ai_mode", "hunt"))
+			var allow_fire := float(robot.get("ai_hit_evade_t", 0.0)) <= 0.0
+			if _robot_is_coop(robot) and float(robot.get("ai_hit_evade_t", 0.0)) < 0.85:
+				allow_fire = true
+			if mode == "disengage" and not (exp_protocol != null and exp_protocol.active):
+				allow_fire = allow_fire and randf() < 0.4
+			if mode == "engage" and int(robot.get("ai_shots_burst", 0)) >= 3:
+				# Volley bookkeeping only; inter-shot gap remains AI_SHOT_COOLDOWN (~3s).
+				robot["ai_shots_burst"] = 0
+			if allow_fire and float(robot["shoot_cooldown"]) <= 0.0 and _can_ai_fire_closed_loop(robot):
+				var fire_reason := _ai_fire_reason(robot)
+				if fire_reason == "none":
+					pass  # closed_loop true but reason race; still fire
+				_fire_projectile(robot)
+				if exp_protocol != null and exp_protocol.active:
+					var enemy_dir: Vector3 = exp_protocol._nearest_enemy_dir(robot["body"].global_position, robots, int(robot["team"]))
+					var enemy_dot: float = -2.0
+					if enemy_dir.length_squared() > 1e-6:
+						enemy_dot = _muzzle_world_dir(robot).dot(enemy_dir.normalized())
+					var best_dot: float = -2.0
+					var muzzle_now: Vector3 = _muzzle_world_dir(robot)
+					for other_r in robots:
+						if int(other_r["team"]) == int(robot["team"]) or not bool(other_r.get("alive", true)):
+							continue
+						var to_o: Vector3 = other_r["body"].global_position - robot["body"].global_position
+						to_o.y = 0.0
+						if to_o.length_squared() < 1e-6:
+							continue
+						best_dot = maxf(best_dot, muzzle_now.dot(to_o.normalized()))
+					print("FAIR_SHOT id=", int(robot["id"]), " team=", int(robot["team"]), " align=", snappedf(float(robot.get("last_aim_align", -1.0)), 0.001), " enemy_dot=", snappedf(enemy_dot, 0.001), " best_dot=", snappedf(best_dot, 0.001))
+				var vis_tag := "VISION" if fire_reason.begins_with("vision") else "SENSOR"
+				if int(robot["id"]) == 0 and fire_reason.begins_with("vision"):
+					_save_r1_vision_from_robot(robot, "fire_vision", fire_reason)
+				var since_see := sim_time - float(robot.get("vision_last_see_t", -99.0))
+				print("FIRE ", vis_tag, " id=", robot["id"], " ", _robot_label(robot),
+					" reason=", fire_reason,
+					" armor=", int(robot.get("last_armor_count", 0)),
+					" age=", snappedf(float(robot.get("vision_age", 0.0)), 0.01),
+					" since_see=", snappedf(since_see, 0.01),
+					" tracker=", str(robot.get("last_tracker_state", "?")),
+					" control=", bool(robot.get("vision_control", false)),
+					" shoot_flag=", bool(robot.get("vision_shoot", false)))
+				robot["ai_shots_burst"] = int(robot.get("ai_shots_burst", 0)) + 1
+				var cd_scale := 1.0
+				if exp_protocol != null and exp_protocol.active:
+					exp_protocol.note_shot(robot, sim_time)
+				elif team_coop != null:
+					cd_scale = team_coop.shot_cooldown_scale(robot)
+					# Late asymmetric finish: ensure organic whole closes out remaining foes
+					if _robot_is_coop(robot) and team_coop.is_asymmetric() and sim_time > 40.0:
+						var foe_left := 0
+						for rr in robots:
+							if int(rr["team"]) != int(robot["team"]) and bool(rr.get("alive", true)):
+								foe_left += 1
+						if foe_left > 0:
+							cd_scale *= 0.82
+				var cd := AI_SHOT_COOLDOWN * cd_scale * (0.95 + randf() * 0.06)
+				robot["shoot_cooldown"] = cd
+		# Manual: vision poll sets aim; fire stays manual.
+		elif is_manual_player and bool(robot.get("auto_aim_enabled", true)):
+			robot["vision_age"] = float(robot.get("vision_age", 99.0)) + delta
+			if float(robot["vision_age"]) > 1.6:
+				robot["vision_has_target"] = false
+
+	if extension_ready:
+		capture_accumulator += delta
+		var period := 1.0 / maxf(camera_hz, 1.0)
+		# Round-robin + global cap + queue backpressure (stops Tracker Large dt).
+		var slot_period := period / float(ROBOT_COUNT)
+		var min_slot: float = 0.20
+		if exp_protocol != null and exp_protocol.active:
+			min_slot = 0.09
+		if slot_period < min_slot:
+			slot_period = min_slot
+		if capture_accumulator >= slot_period and capture_requested_id < 0:
+			var queue_depth := 0
+			if bridge != null and bridge.has_method("get_runtime_stats"):
+				var st: Dictionary = bridge.get_runtime_stats()
+				queue_depth = int(st.get("queue_depth", 0))
+			if queue_depth >= 1:
+				capture_accumulator = 0.0  # drop slot, let worker drain
+			else:
+				var cap_id := capture_cursor
+				capture_cursor = (capture_cursor + 1) % ROBOT_COUNT
+				var cap_scale := 1.0
+				if exp_protocol != null and exp_protocol.active:
+					cap_scale = exp_protocol.capture_period_scale(int(robots[cap_id]["team"]))
+				var last_cap := float(robots[cap_id].get("exp_cap_t", -10.0))
+				if cap_scale > 1.01 and sim_time - last_cap < slot_period * float(ROBOT_COUNT) * cap_scale:
+					pass
+				else:
+					robots[cap_id]["exp_cap_t"] = sim_time
+					capture_accumulator = fmod(capture_accumulator, slot_period)
+					capture_requested_id = cap_id
+					robots[capture_requested_id]["viewport"].render_target_update_mode = SubViewport.UPDATE_ONCE
+		_poll_all_results()
+	hud_accum += delta
+	if hud_accum >= 0.12:
+		hud_accum = 0.0
+		_update_hud()
+
+
+
+func _resolve_robot_blocking(robot: Dictionary) -> void:
+	## Solid body blocking: no living car may occupy another car footprint (alive or wreck).
+	if not bool(robot.get("alive", true)):
+		return
+	var body: CharacterBody3D = robot["body"]
+	var half := 0.34
+	if robot.has("chassis_size"):
+		var cs: Vector3 = robot["chassis_size"]
+		half = maxf(0.28, 0.48 * maxf(cs.x, cs.z))
+	var min_sep := half * 2.0 * 0.92
+	var my_pos := body.global_position
+	for other in robots:
+		if other == robot:
+			continue
+		var ob: CharacterBody3D = other["body"]
+		if ob == null or not is_instance_valid(ob):
+			continue
+		var opos := ob.global_position
+		var delta := Vector3(my_pos.x - opos.x, 0.0, my_pos.z - opos.z)
+		var dist := delta.length()
+		if dist >= min_sep:
+			continue
+		if dist < 1e-4:
+			var ang := float(int(robot["id"])) * 1.7
+			delta = Vector3(cos(ang), 0.0, sin(ang))
+			dist = 1e-4
+		var push := delta.normalized() * (min_sep - dist)
+		my_pos += push
+	my_pos.x = clampf(my_pos.x, -FIELD_HALF + 0.45, FIELD_HALF - 0.45)
+	my_pos.z = clampf(my_pos.z, -FIELD_HALF + 0.45, FIELD_HALF - 0.45)
+	body.global_position = Vector3(my_pos.x, body.global_position.y, my_pos.z)
+
+
+func _update_robot_chassis(robot: Dictionary, delta: float) -> void:
+	var body: CharacterBody3D = robot["body"]
+	if not bool(robot.get("alive", true)):
+		# Wreck stays put but remains a solid obstacle (collision_layer kept on eliminate).
+		body.velocity = Vector3.ZERO
+		if body.global_position.y < 0.0:
+			body.global_position.y = 0.0
+		return
+	var yaw_axis: Node3D = robot["yaw_axis"]
+	var is_player: bool = robot["is_player"]
+	# In manual mode, allow WASD even in overview so you can drive while watching.
+	var controls_enabled := (
+		gameplay_controls_enabled
+		and not config_panel.visible
+		and (not overview_mode or manual_control_mode)
+	)
+	var player_driving := manual_control_mode and is_player and controls_enabled
+
+	var right_input := 0.0
+	var forward_input := 0.0
+	var sprinting := false
+	if player_driving:
+		right_input = Input.get_axis(ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT)
+		forward_input = Input.get_axis(ACTION_MOVE_BACKWARD, ACTION_MOVE_FORWARD)
+		sprinting = Input.is_action_pressed(ACTION_SPRINT) or Input.is_physical_key_pressed(KEY_SHIFT)
+	elif ai_enabled and (not player_driving):
+		# AI drive: tactics + variable throttle (turn slow / dodge fast).
+		var drive: Vector2 = _compute_ai_drive(robot, delta)
+		forward_input = drive.x
+		right_input = drive.y
+		sprinting = bool(robot.get("ai_want_sprint", false))
+
+	# Drive basis: body forward for AI so muzzle/nose match travel (not crab/reverse).
+	var forward: Vector3
+	var right: Vector3
+	if player_driving:
+		forward = -yaw_axis.global_transform.basis.z
+		forward.y = 0.0
+		forward = forward.normalized()
+		right = yaw_axis.global_transform.basis.x
+		right.y = 0.0
+		right = right.normalized()
+	else:
+		forward = _body_forward_dir(robot)
+		right = Vector3.UP.cross(forward)
+		if right.length_squared() < 1e-6:
+			right = Vector3.RIGHT
+		else:
+			right = right.normalized()
+	# Obstacle / peer avoidance (AI and manual)
+	var avoid := _avoidance_bias(body, forward, right)
+	right_input = clampf(right_input + avoid.x, -1.0, 1.0)
+	forward_input *= avoid.y
+	if avoid.y < 0.35 and absf(avoid.x) > 0.05:
+		# Prefer slide along obstacle instead of stalling
+		right_input = clampf(right_input + signf(avoid.x) * 0.55, -1.0, 1.0)
+	if avoid.z > 0.5 and forward_input >= 0.0 and float(robot.get("ai_unstuck_t", 0.0)) <= 0.0:
+		_begin_unstuck(robot, body, forward, right)
+	var unstuck_drive: Vector2 = _apply_unstuck(robot, body, forward, right, forward_input, right_input, delta)
+	forward_input = unstuck_drive.x
+	right_input = unstuck_drive.y
+	# AI: forward-only outside brief unstuck. Face gun at aim BEFORE any drive.
+	# Critical for blue: never reverse to chase; turn until original gun faces target.
+	if not player_driving and float(robot.get("ai_unstuck_t", 0.0)) <= 0.0:
+		if exp_protocol != null and exp_protocol.active:
+			forward_input = clampf(forward_input, -0.45, 1.0)
+		else:
+			forward_input = clampf(forward_input, 0.0, 1.0)
+		right_input = clampf(right_input, -1.0, 1.0)
+		var aim_y := float(robot.get("command_yaw", body.rotation.y))
+		var face_err := wrapf(aim_y - body.rotation.y, -PI, PI)
+		if absf(face_err) > 0.45:
+			# Pure turn-in-place (no strafe/reverse) until gun faces aim.
+			forward_input = 0.0
+			right_input = 0.0
+		elif absf(face_err) > 0.25:
+			forward_input = minf(forward_input, 0.25)
+	# Map AI speed_scale ∈ [0,1] across turn → cruise → combat → sprint.
+	var speed_scale := 1.0 if player_driving else float(robot.get("ai_speed_scale", 0.55))
+	speed_scale = clampf(speed_scale, 0.0, 1.0)
+	var max_speed: float
+	if player_driving:
+		max_speed = CHASSIS_BURST_SPEED if sprinting else CHASSIS_NORMAL_SPEED
+	else:
+		if sprinting or speed_scale > 0.85:
+			max_speed = lerpf(CHASSIS_COMBAT_SPEED, CHASSIS_BURST_SPEED, clampf((speed_scale - 0.85) / 0.15, 0.0, 1.0))
+		elif speed_scale < 0.35:
+			# Turning / tight maneuver
+			max_speed = lerpf(CHASSIS_TURN_SPEED, CHASSIS_NORMAL_SPEED, speed_scale / 0.35)
+		elif speed_scale < 0.65:
+			max_speed = lerpf(CHASSIS_NORMAL_SPEED, CHASSIS_COMBAT_SPEED, (speed_scale - 0.35) / 0.30)
+		else:
+			max_speed = lerpf(CHASSIS_COMBAT_SPEED, CHASSIS_BURST_SPEED, (speed_scale - 0.65) / 0.35)
+	var max_omega := CHASSIS_BURST_OMEGA if (sprinting or speed_scale > 0.8) else CHASSIS_NORMAL_OMEGA
+	# Slow yaw while turning hard at low speed_scale
+	if not player_driving and absf(right_input) > 0.55 and absf(forward_input) < 0.45:
+		max_speed = minf(max_speed, CHASSIS_TURN_SPEED * 1.25)
+		max_omega = CHASSIS_NORMAL_OMEGA * 0.85
+	var current_planar := Vector3(body.velocity.x, 0.0, body.velocity.z)
+	var protocol_reverse: bool = (not player_driving) and exp_protocol != null and exp_protocol.active and forward_input < 0.0
+	var ai_rev_ok: bool = ((not player_driving) and float(robot.get("ai_unstuck_t", 0.0)) > 0.0) or protocol_reverse
+	var fwd_cmd := forward_input
+	if not player_driving and not ai_rev_ok:
+		fwd_cmd = maxf(fwd_cmd, 0.0)
+	var planned_forward := _approach_speed(current_planar.dot(forward), fwd_cmd * max_speed, 10.0, 12.0, delta)
+	var planned_right := _approach_speed(current_planar.dot(right), right_input * max_speed, 11.0, 13.0, delta)
+	if not player_driving and not ai_rev_ok and planned_forward < 0.0:
+		planned_forward = 0.0
+
+	var desired_omega := 0.0
+	var gyro: int = robot["chassis_gyro_direction"]
+	if gyro != GYRO_DISABLED:
+		desired_omega = gyro * max_omega
+	elif not player_driving:
+		# Face command_yaw ONLY (enemy). Identical red/blue via _yaw_from_dir / atan2.
+		# Do NOT blend move direction — that made blue crab/spin with nose off target.
+		var aim_yaw2 := float(robot.get("command_yaw", body.rotation.y))
+		var yaw_err2 := wrapf(aim_yaw2 - body.rotation.y, -PI, PI)
+		desired_omega = clampf(yaw_err2 * 6.5, -max_omega, max_omega)
+	else:
+		var relative_gimbal_yaw2 := wrapf(yaw_axis.rotation.y, -PI, PI)
+		if absf(relative_gimbal_yaw2) > CHASSIS_FOLLOW_DEADZONE:
+			desired_omega = clampf(relative_gimbal_yaw2 * CHASSIS_FOLLOW_KP, -CHASSIS_NORMAL_OMEGA, CHASSIS_NORMAL_OMEGA)
+	robot["chassis_yaw_velocity"] = move_toward(
+		float(robot["chassis_yaw_velocity"]), desired_omega, CHASSIS_ANGULAR_ACCEL * delta)
+
+	var chassis_yaw_velocity: float = robot["chassis_yaw_velocity"]
+	var planned_left := -planned_right
+	var chassis_forward: float
+	var chassis_left: float
+	if player_driving:
+		var relative_yaw := wrapf(yaw_axis.rotation.y, -PI, PI)
+		chassis_forward = planned_forward * cos(relative_yaw) - planned_left * sin(relative_yaw)
+		chassis_left = planned_forward * sin(relative_yaw) + planned_left * cos(relative_yaw)
+	else:
+		chassis_forward = planned_forward
+		chassis_left = planned_left
+	var wheel_speeds := [
+		chassis_forward - chassis_left - chassis_yaw_velocity * CHASSIS_ROTATION_RADIUS,
+		chassis_forward + chassis_left - chassis_yaw_velocity * CHASSIS_ROTATION_RADIUS,
+		-chassis_forward + chassis_left - chassis_yaw_velocity * CHASSIS_ROTATION_RADIUS,
+		-chassis_forward - chassis_left - chassis_yaw_velocity * CHASSIS_ROTATION_RADIUS]
+	var max_wheel := 0.0
+	for w in wheel_speeds:
+		max_wheel = maxf(max_wheel, absf(w))
+	if max_wheel > CHASSIS_WHEEL_SPEED_LIMIT:
+		var scale := CHASSIS_WHEEL_SPEED_LIMIT / max_wheel
+		planned_forward *= scale
+		planned_right *= scale
+		chassis_yaw_velocity *= scale
+		robot["chassis_yaw_velocity"] = chassis_yaw_velocity
+
+	var gimbal_world_yaw := _gimbal_world_yaw(robot)
+	body.rotation.y = wrapf(body.rotation.y + chassis_yaw_velocity * delta, -PI, PI)
+	# Keep within arena bounds.
+	# Soft safety margin inside solid perimeter walls (~0.4m inset).
+	body.position.x = clampf(body.position.x, -FIELD_HALF + 0.45, FIELD_HALF - 0.45)
+	body.position.z = clampf(body.position.z, -FIELD_HALF + 0.45, FIELD_HALF - 0.45)
+	var asm_yaw := 0.0
+	if robot.has("assembly") and robot["assembly"] != null:
+		asm_yaw = float(robot["assembly"].rotation.y)
+	if not player_driving:
+		# TANK MODE: lock gun to chassis. Muzzle == body forward == shell dir (both teams).
+		yaw_axis.rotation.y = 0.0
+		var pitch_lock: Node3D = robot["pitch_axis"]
+		pitch_lock.rotation.x = 0.0
+	else:
+		var rel_y := wrapf(gimbal_world_yaw - body.rotation.y - asm_yaw, -PI, PI)
+		yaw_axis.rotation.y = rel_y
+	# Recompute basis AFTER yaw integrate so motion matches new nose (both teams).
+	if not player_driving:
+		forward = _body_forward_dir(robot)
+		right = Vector3.UP.cross(forward)
+		if right.length_squared() < 1e-6:
+			right = Vector3.RIGHT
+		else:
+			right = right.normalized()
+	var desired_velocity := forward * planned_forward + right * planned_right
+	if not player_driving and not ai_rev_ok:
+		var body_f := _body_forward_dir(robot)
+		var along := desired_velocity.dot(body_f)
+		if along < 0.0:
+			desired_velocity -= body_f * along
+		# Absolute ban on reverse planar velocity outside unstuck.
+		if desired_velocity.dot(body_f) < 0.0:
+			desired_velocity = right * planned_right
+	body.velocity.x = desired_velocity.x
+	body.velocity.z = desired_velocity.z
+	if body.is_on_floor():
+		body.velocity.y = 0.0
+	else:
+		body.velocity.y -= 20.0 * delta
+	var pos_before := body.global_position
+	body.move_and_slide()
+	# Hard block: cannot pass through any other vehicle (alive or destroyed).
+	_resolve_robot_blocking(robot)
+	if not player_driving and ai_enabled:
+		var moved := Vector3(body.global_position.x - pos_before.x, 0.0, body.global_position.z - pos_before.z).length()
+		var cmd := absf(forward_input) + absf(right_input)
+		var planar_spd := Vector3(body.velocity.x, 0.0, body.velocity.z).length()
+		var wall_hit := false
+		for si in range(body.get_slide_collision_count()):
+			var colx := body.get_slide_collision(si)
+			var nrm: Vector3 = colx.get_normal()
+			nrm.y = 0.0
+			if nrm.length_squared() > 1e-6 and absf(nrm.normalized().dot(forward)) > 0.55:
+				wall_hit = true
+				break
+		if cmd > 0.35 and (moved < 0.012 * maxf(delta * 60.0, 1.0) or planar_spd < 0.12 or wall_hit):
+			robot["ai_stuck_time"] = float(robot.get("ai_stuck_time", 0.0)) + delta
+		else:
+			robot["ai_stuck_time"] = maxf(0.0, float(robot.get("ai_stuck_time", 0.0)) - delta * 1.5)
+		if float(robot.get("ai_stuck_time", 0.0)) > 0.35 and float(robot.get("ai_unstuck_t", 0.0)) <= 0.0:
+			_begin_unstuck(robot, body, forward, right)
+			robot["ai_stuck_time"] = 0.0
+
+
+
+func _pick_ai_enemy(robot: Dictionary) -> Variant:
+	## Coop team: honor multi-agent assigned target. Solo: sticky + random retarget.
+	if _robot_is_coop(robot) and team_coop != null:
+		var assigned: Variant = team_coop.assigned_enemy(robots, robot)
+		if assigned != null:
+			robot["ai_target_id"] = int(assigned["id"])
+			return assigned
+	var sticky_id: int = int(robot.get("ai_target_id", -1))
+	if sticky_id >= 0 and sticky_id < robots.size():
+		var sticky: Dictionary = robots[sticky_id]
+		if int(sticky["team"]) != int(robot["team"]) and bool(sticky.get("alive", true)):
+			var d: float = robot["body"].global_position.distance_to(sticky["body"].global_position)
+			# Solo: thrash retarget (independent agents, no consensus)
+			var stick_p := 0.01 if _robot_is_coop(robot) else 0.16
+			if d < 11.0 and randf() > stick_p:
+				return sticky
+	# Weighted random among living enemies (favor nearer, not always nearest).
+	var candidates: Array = []
+	var weights: Array = []
+	var my_pos: Vector3 = robot["body"].global_position
+	var total_w := 0.0
+	for other in robots:
+		if int(other["team"]) == int(robot["team"]):
+			continue
+		if not bool(other.get("alive", true)):
+			continue
+		var dist: float = my_pos.distance_to(other["body"].global_position)
+		var w: float = 1.0 / maxf(dist * dist, 0.8)
+		# Slight preference for lower robot id variance by seed
+		w *= 0.75 + 0.5 * absf(sin(float(other["id"] * 3 + robot["id"])))
+		candidates.append(other)
+		weights.append(w)
+		total_w += w
+	if candidates.is_empty():
+		robot["ai_target_id"] = -1
+		return null
+	var r: float = randf() * total_w
+	var acc := 0.0
+	for i in range(candidates.size()):
+		acc += float(weights[i])
+		if r <= acc:
+			robot["ai_target_id"] = int(candidates[i]["id"])
+			return candidates[i]
+	var last: Dictionary = candidates[candidates.size() - 1]
+	robot["ai_target_id"] = int(last["id"])
+	return last
+
+
+
+func _shell_dodge_dir(robot: Dictionary) -> Vector3:
+	## Escape sideways if an enemy shell is on a near-collision course.
+	var body: CharacterBody3D = robot["body"]
+	var my_pos: Vector3 = body.global_position
+	my_pos.y = 0.0
+	var best := Vector3.ZERO
+	var best_urgency := 0.0
+	for node in get_tree().get_nodes_in_group("sim_projectile"):
+		if node == null or not is_instance_valid(node) or not (node is Node3D):
+			continue
+		var ot: Variant = node.get("owner_team")
+		var owner_team: int = int(ot) if ot != null else -1
+		if owner_team == int(robot["team"]):
+			continue
+		var v_var: Variant = node.get("velocity")
+		if v_var == null:
+			continue
+		var v: Vector3 = v_var as Vector3
+		v.y = 0.0
+		if v.length_squared() < 1.0:
+			continue
+		var p: Vector3 = (node as Node3D).global_position
+		p.y = 0.0
+		var vdir := v.normalized()
+		var to_me: Vector3 = my_pos - p
+		var along: float = to_me.dot(vdir)
+		if along < 0.15 or along > 9.0:
+			continue
+		var closest: Vector3 = p + vdir * along
+		var miss: float = (my_pos - closest).length()
+		if miss > 1.15:
+			continue
+		var speed: float = v.length()
+		var tti: float = along / maxf(speed, 1.0)
+		if tti > 0.85:
+			continue
+		var urgency: float = (1.0 - miss / 1.15) * (1.0 - tti / 0.85)
+		var perp := Vector3(-vdir.z, 0.0, vdir.x)
+		var left_clear := _clearance_score(body, perp)
+		var right_clear := _clearance_score(body, -perp)
+		var escape: Vector3 = perp if left_clear >= right_clear else -perp
+		escape = escape * 0.85 - vdir * 0.25
+		if escape.length_squared() > 1e-6:
+			escape = escape.normalized()
+		if urgency > best_urgency:
+			best_urgency = urgency
+			best = escape
+	if best_urgency < 0.08:
+		return Vector3.ZERO
+	return best
+
+
+func _clearance_score(body: CharacterBody3D, dir: Vector3) -> float:
+	var d := dir
+	d.y = 0.0
+	if d.length_squared() < 1e-6:
+		return 0.0
+	d = d.normalized()
+	var origin: Vector3 = body.global_position + Vector3(0.0, 0.28, 0.0)
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + d * 2.8)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	query.collision_mask = 1
+	query.exclude = [body.get_rid()]
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return 2.8
+	return origin.distance_to(hit.get("position", origin))
+
+
+func _pick_fire_opportunity(robot: Dictionary) -> Variant:
+	## Only living enemies with CLEAR LOS (for aim+fire). Never same team.
+	var best: Variant = null
+	var best_score := -1e9
+	var my_body: CharacterBody3D = robot["body"]
+	var my_pos: Vector3 = my_body.global_position
+	for other in robots:
+		if int(other["team"]) == int(robot["team"]):
+			continue
+		if not bool(other.get("alive", true)):
+			continue
+		if not _enemy_visible(robot, other):
+			continue  # cannot see → cannot be a fire target
+		var op: Vector3 = other["body"].global_position + Vector3(0.0, 0.22, 0.0)
+		var to_e: Vector3 = op - my_pos
+		to_e.y = 0.0
+		var dist: float = to_e.length()
+		if dist < 0.7 or dist > MUZZLE_LINE_RANGE_MAX:
+			continue
+		var prefer: float = float(robot.get("ai_prefer_range", 2.4))
+		var score: float = 5.0  # visible bonus
+		score += 2.5 - absf(dist - prefer) * 0.4
+		if int(other["id"]) == int(robot.get("ai_target_id", -1)):
+			score += 0.8
+		if score > best_score:
+			best_score = score
+			best = other
+	return best
+
+
+func _peek_shot_bias(robot: Dictionary, enemy: Variant) -> Vector3:
+	## When LOS blocked, slide laterally around cover to create a firing lane.
+	if enemy == null:
+		return Vector3.ZERO
+	var body: CharacterBody3D = robot["body"]
+	var my_pos: Vector3 = body.global_position
+	var epos: Vector3 = enemy["body"].global_position + Vector3(0.0, 0.22, 0.0)
+	var eye: Vector3 = robot["pitch_axis"].global_position if robot.has("pitch_axis") else my_pos + Vector3(0, 0.25, 0)
+	if not _ray_blocked(eye, epos, [body.get_rid(), enemy["body"].get_rid()]):
+		var to_e: Vector3 = epos - my_pos
+		to_e.y = 0.0
+		if to_e.length_squared() < 1e-4:
+			return Vector3.ZERO
+		var side := Vector3(-to_e.z, 0.0, to_e.x).normalized()
+		var orbit: float = float(robot.get("ai_orbit_dir", 1.0))
+		return side * orbit * 0.35
+	var to_e2: Vector3 = epos - my_pos
+	to_e2.y = 0.0
+	if to_e2.length_squared() < 1e-4:
+		return Vector3.ZERO
+	var dir := to_e2.normalized()
+	var side2 := Vector3(-dir.z, 0.0, dir.x)
+	var candidates: Array = [
+		(dir * 0.35 + side2 * 0.9).normalized(),
+		(dir * 0.35 - side2 * 0.9).normalized(),
+		side2.normalized(),
+		(-side2).normalized(),
+		(dir * 0.15 + side2 * 1.1).normalized(),
+		(dir * 0.15 - side2 * 1.1).normalized(),
+	]
+	var best_dir := Vector3.ZERO
+	var best_s := -1.0
+	for c in candidates:
+		var probe_from: Vector3 = eye + c * 1.1
+		var blocked := _ray_blocked(probe_from, epos, [body.get_rid(), enemy["body"].get_rid()])
+		var clear := _clearance_score(body, c)
+		var s: float = clear + (2.5 if not blocked else 0.0)
+		if s > best_s:
+			best_s = s
+			best_dir = c
+	return best_dir
+
+
+
+func _update_ai_combat_mode(robot: Dictionary, delta: float, foe: Variant) -> void:
+	## Break endless mutual barrage: after a short duel, one side disengages.
+	var mode: String = str(robot.get("ai_mode", "hunt"))
+	var aggression: float = clampf(float(robot.get("ai_aggression", 0.6)), 0.15, 1.2)
+	var brave: float = clampf(float(robot.get("ai_brave", 0.5)), 0.1, 1.0)
+
+	if mode == "disengage":
+		robot["ai_disengage_t"] = float(robot.get("ai_disengage_t", 0.0)) - delta
+		if float(robot["ai_disengage_t"]) <= 0.0:
+			robot["ai_mode"] = "hunt"
+			robot["ai_duel_t"] = 0.0
+			robot["ai_shots_burst"] = 0
+			var re: Variant = _nearest_enemy(robot)
+			if re != null:
+				robot["ai_target_id"] = int(re["id"])
+		return
+
+	if foe == null:
+		robot["ai_duel_t"] = maxf(0.0, float(robot.get("ai_duel_t", 0.0)) - delta * 0.8)
+		robot["ai_mode"] = "hunt"
+		if float(robot.get("ai_duel_t", 0.0)) < 0.2:
+			robot["ai_shots_burst"] = 0
+		return
+
+	var my_pos: Vector3 = robot["body"].global_position
+	var epos: Vector3 = foe["body"].global_position
+	var dist: float = my_pos.distance_to(epos)
+	var eye: Vector3 = robot["pitch_axis"].global_position if robot.has("pitch_axis") else my_pos + Vector3(0, 0.25, 0)
+	var tgt: Vector3 = epos + Vector3(0.0, 0.22, 0.0)
+	var has_los := not _ray_blocked(eye, tgt, [robot["body"].get_rid(), foe["body"].get_rid()])
+	var close_duel := dist < 4.8 and has_los
+
+	# Incoming shells raise flee urgency
+	var under_fire := _shell_dodge_dir(robot).length_squared() > 1e-4
+
+	if close_duel or under_fire:
+		robot["ai_duel_t"] = float(robot.get("ai_duel_t", 0.0)) + delta * (1.35 if under_fire else 1.0)
+		robot["ai_mode"] = "engage"
+	else:
+		robot["ai_duel_t"] = maxf(0.0, float(robot.get("ai_duel_t", 0.0)) - delta * 0.55)
+		if float(robot["ai_duel_t"]) < 0.35:
+			robot["ai_mode"] = "hunt"
+			robot["ai_shots_burst"] = 0
+
+	# Threshold: low bravery / aggression breaks off sooner; also after burst volley.
+	var threshold: float = 0.7 + brave * 1.4 + aggression * 1.1  # ~0.7–3.2 s
+	# Asymmetry: even ids tend to disengage first in mirror duels
+	if (int(robot["id"]) % 2) == 0:
+		threshold *= 0.82
+	else:
+		threshold *= 1.12
+
+	var burst: int = int(robot.get("ai_shots_burst", 0))
+	var should_break := float(robot.get("ai_duel_t", 0.0)) >= threshold
+	should_break = should_break or (burst >= 4 and randf() < 0.35 + (1.0 - brave) * 0.4)
+	should_break = should_break or (under_fire and randf() < 0.08 + (1.0 - brave) * 0.12)
+
+	if should_break and mode != "disengage" and float(robot.get("ai_hit_evade_t", 0.0)) <= 0.0:
+		robot["ai_mode"] = "disengage"
+		robot["ai_disengage_t"] = 0.22 + randf() * 0.28 + (1.0 - aggression) * 0.12
+		robot["ai_shots_burst"] = 0
+		robot["ai_duel_t"] = 0.0
+		# Escape waypoint: away from enemy + lateral + toward cover/open space
+		var away: Vector3 = my_pos - epos
+		away.y = 0.0
+		if away.length_squared() < 1e-4:
+			away = _body_forward_dir(robot) * -1.0
+		else:
+			away = away.normalized()
+		var side := Vector3(-away.z, 0.0, away.x) * (1.0 if randf() > 0.5 else -1.0)
+		var esc: Vector3 = my_pos + away * (3.5 + randf() * 2.5) + side * (1.5 + randf() * 2.0)
+		esc.x = clampf(esc.x, -6.5, 6.5)
+		esc.z = clampf(esc.z, -6.5, 6.5)
+		robot["ai_waypoint"] = esc
+		robot["ai_want_sprint"] = true
+		robot["ai_speed_scale"] = 1.0
+
+
+
+func _compute_ai_drive_protocol(robot: Dictionary, delta: float) -> Vector2:
+	var body: CharacterBody3D = robot["body"]
+	var body_fwd: Vector3 = _body_forward_dir(robot)
+	var body_right: Vector3 = Vector3.UP.cross(body_fwd)
+	if body_right.length_squared() < 1e-6:
+		body_right = Vector3.RIGHT
+	else:
+		body_right = body_right.normalized()
+	if float(robot.get("ai_hit_evade_t", 0.0)) > 0.0:
+		robot["ai_hit_evade_t"] = float(robot["ai_hit_evade_t"]) - delta
+		var wp_h: Vector3 = robot.get("ai_waypoint", body.global_position)
+		var to_h: Vector3 = wp_h - body.global_position
+		to_h.y = 0.0
+		if to_h.length_squared() > 0.35:
+			var hdir: Vector3 = to_h.normalized()
+			robot["ai_speed_scale"] = 1.0
+			return Vector2(clampf(body_fwd.dot(hdir), 0.1, 1.0), clampf(body_right.dot(hdir), -1.0, 1.0))
+	var dodge: Vector3 = _shell_dodge_dir(robot)
+	if dodge.length_squared() > 1e-4:
+		robot["ai_speed_scale"] = 1.0
+		return Vector2(clampf(body_fwd.dot(dodge), 0.0, 1.0), clampf(body_right.dot(dodge), -1.0, 1.0))
+	var goal: Vector3 = exp_protocol.nav_goal(robot, sim_time, FIELD_HALF, robots)
+	var lock_left: float = float(robot.get("fire_lock_until", -1.0)) - sim_time
+	if lock_left > 0.0:
+		var chase_dir: Vector3 = robot.get("fire_lock_dir", Vector3.ZERO)
+		if chase_dir.length_squared() > 0.25:
+			var chase_dist: float = float(robot.get("fire_lock_dist", 4.0))
+			var chase_step: float = clampf(chase_dist - 2.6, 0.5, 4.0)
+			goal = body.global_position + chase_dir.normalized() * chase_step
+	robot["ai_waypoint"] = goal
+	var to_wp: Vector3 = goal - body.global_position
+	to_wp.y = 0.0
+	var desired: Vector3 = body_fwd
+	if to_wp.length_squared() > 0.16:
+		desired = to_wp.normalized()
+	var clear_bias: Vector3 = _clearance_bias(body, desired, body_right)
+	desired = (desired * 0.75 + clear_bias * 0.25)
+	if desired.length_squared() > 1e-6:
+		desired = desired.normalized()
+	var sep: Vector3 = Vector3.ZERO
+	var my_pos: Vector3 = body.global_position
+	for other in robots:
+		if int(other["id"]) == int(robot["id"]) or not bool(other.get("alive", true)):
+			continue
+		var dvec: Vector3 = my_pos - other["body"].global_position
+		dvec.y = 0.0
+		var dlen: float = dvec.length()
+		if dlen < 2.6 and dlen > 0.001:
+			sep += dvec.normalized() * (2.6 - dlen) / 2.6
+	if sep.length_squared() > 1e-6:
+		desired = (desired + sep.normalized() * 0.78).normalized()
+	robot["ai_speed_scale"] = 1.0
+	robot["ai_want_sprint"] = to_wp.length() > 3.0
+	var f_in: float = clampf(body_fwd.dot(desired), -0.45, 1.0)
+	var r_in: float = clampf(body_right.dot(desired), -1.0, 1.0)
+	if body_fwd.dot(desired) < 0.15:
+		f_in = clampf(body_fwd.dot(desired), -0.45, 0.0)
+		r_in = clampf(body_right.dot(desired), -1.0, 1.0)
+	return Vector2(f_in, r_in)
+
+func _compute_ai_drive(robot: Dictionary, delta: float) -> Vector2:
+	if exp_protocol != null and exp_protocol.active:
+		return _compute_ai_drive_protocol(robot, delta)
+	## Asymmetric tactics + obstacle-aware pathing. Roles differ by robot id.
+	var body: CharacterBody3D = robot["body"]
+	var role: int = int(robot.get("ai_role", robot["id"] % 3))
+	var nphase: float = float(robot.get("ai_noise_phase", 0.0))
+	var nfreq: float = float(robot.get("ai_noise_freq", 0.8))
+	var sgain: float = float(robot.get("ai_strafe_gain", 0.5))
+	var aggression: float = clampf(float(robot.get("ai_aggression", 0.7)), 0.15, 1.15)
+	var flank: float = float(robot.get("ai_flank", 1.0))
+	var orbit: float = float(robot.get("ai_orbit_dir", 1.0))
+	var prefer: float = float(robot.get("ai_prefer_range", 3.2))
+	var style: float = float(robot.get("ai_style_seed", float(robot["id"])))
+
+	# Periodic personality jitter (independent per car, not team-synced)
+	robot["ai_repath_t"] = float(robot.get("ai_repath_t", 0.0)) - delta
+	if float(robot["ai_repath_t"]) <= 0.0:
+		robot["ai_repath_t"] = 0.4 + randf() * 0.55 + float(role) * 0.1
+		if randf() < 0.42:
+			robot["ai_orbit_dir"] = -orbit
+			orbit = float(robot["ai_orbit_dir"])
+		if randf() < 0.30:
+			robot["ai_flank"] = -flank
+			flank = float(robot["ai_flank"])
+		if randf() < 0.28:
+			robot["ai_prefer_range"] = clampf(prefer + randf_range(-0.5, 0.5), 1.5, 3.6)
+			prefer = float(robot["ai_prefer_range"])
+		if randf() < 0.18:
+			robot["ai_aggression"] = clampf(aggression + randf_range(-0.18, 0.18), 0.2, 1.15)
+			aggression = float(robot["ai_aggression"])
+	# Aggressive full-map hunt: actively close with living enemies (seek), fire still vision-first.
+	var body_fwd0: Vector3 = _body_forward_dir(robot)
+	var body_right0: Vector3 = Vector3.UP.cross(body_fwd0)
+	if body_right0.length_squared() < 1e-6:
+		body_right0 = Vector3.RIGHT
+	else:
+		body_right0 = body_right0.normalized()
+	var vis_lock := _vision_target_fresh(robot, 2.2)
+	var hunt: Variant = _nearest_enemy(robot)
+	var living_n := _living_robot_count()
+	var late_game := living_n <= 3
+	var prev_hunt_d := float(robot.get("ai_last_hunt_dist", 99.0))
+	var hunt_d := 99.0
+	if hunt != null:
+		hunt_d = body.global_position.distance_to(hunt["body"].global_position)
+	robot["ai_last_hunt_dist"] = hunt_d
+	if hunt_d < prev_hunt_d - 0.2:
+		robot["ai_no_close_t"] = 0.0
+	else:
+		robot["ai_no_close_t"] = float(robot.get("ai_no_close_t", 0.0)) + delta
+	var stall_loop := float(robot.get("ai_no_close_t", 0.0)) > (1.3 if late_game else 2.0)
+	# Refresh hunt waypoint often so we never loiter in a small pocket.
+	if str(robot.get("ai_mode", "hunt")) != "disengage":
+		if float(robot.get("ai_repath_t", 0.0)) <= 0.05 or not robot.has("ai_waypoint") or stall_loop or (late_game and randf() < 0.03):
+			if hunt != null:
+				var ep: Vector3 = hunt["body"].global_position
+				var to_e0: Vector3 = ep - body.global_position
+				to_e0.y = 0.0
+				var side_v := Vector3.RIGHT
+				if to_e0.length_squared() > 1e-4:
+					side_v = Vector3(-to_e0.z, 0.0, to_e0.x).normalized()
+				var lat := flank * orbit * (0.5 + float(role) * 0.35)
+				var wp: Vector3
+				if stall_loop:
+					# Break mutual orbit: cut past enemy then re-engage.
+					var cut := side_v * (5.0 + randf() * 2.0) * (1.0 if randf() > 0.5 else -1.0)
+					wp = ep + to_e0.normalized() * 1.5 + cut
+					robot["ai_no_close_t"] = 0.0
+					robot["ai_want_sprint"] = true
+				elif to_e0.length() > 3.5 or late_game:
+					# Direct close on enemy (late game: always commit, tiny lateral).
+					var lat_scale := 0.2 if late_game else 0.45
+					wp = ep + side_v * lat * lat_scale
+					if to_e0.length() > 5.5:
+						wp = body.global_position + to_e0.normalized() * minf(to_e0.length() * 0.72, 8.0)
+				else:
+					# Medium: approach enemy, not pure side-orbit.
+					wp = ep * 0.7 + body.global_position * 0.3 + side_v * lat * 0.35
+				wp.x = clampf(wp.x, -FIELD_HALF + 0.85, FIELD_HALF - 0.85)
+				wp.z = clampf(wp.z, -FIELD_HALF + 0.85, FIELD_HALF - 0.85)
+				robot["ai_waypoint"] = wp
+			else:
+				# No living enemy: cross-map patrol (large leaps, not micro wander).
+				var patrol := Vector3(
+					randf_range(-FIELD_HALF + 1.2, FIELD_HALF - 1.2),
+					0.0,
+					randf_range(-FIELD_HALF + 1.2, FIELD_HALF - 1.2))
+				robot["ai_waypoint"] = patrol
+		elif hunt != null and (vis_lock or late_game or stall_loop):
+			# Press enemy head-on (no side-orbit ring that traps late-game fights).
+			var ep2: Vector3 = hunt["body"].global_position
+			var to2: Vector3 = ep2 - body.global_position
+			to2.y = 0.0
+			var side2 := Vector3(-to2.z, 0.0, to2.x)
+			if side2.length_squared() > 1e-6:
+				side2 = side2.normalized()
+			var lat2 := flank * orbit * (0.15 if late_game else 0.35)
+			var wp2: Vector3 = ep2 + side2 * lat2
+			if to2.length() > 2.2 or late_game:
+				wp2 = ep2
+			wp2.x = clampf(wp2.x, -FIELD_HALF + 0.8, FIELD_HALF - 0.8)
+			wp2.z = clampf(wp2.z, -FIELD_HALF + 0.8, FIELD_HALF - 0.8)
+			robot["ai_waypoint"] = wp2
+
+	# Coop only: virtual-leader formation / rescue geometry (organic whole).
+	if _robot_is_coop(robot) and team_coop != null:
+		var fw: Vector3 = team_coop.formation_waypoint(robots, robot, FIELD_HALF)
+		# Progress monitor: if not closing on waypoint, force lateral detour (anti-hover)
+		var myp: Vector3 = body.global_position
+		var d_now: float = myp.distance_to(fw)
+		var d_prev: float = float(robot.get("coop_nav_prev_d", d_now))
+		if d_now < d_prev - 0.06:
+			robot["coop_nav_stuck_t"] = 0.0
+		else:
+			robot["coop_nav_stuck_t"] = float(robot.get("coop_nav_stuck_t", 0.0)) + delta
+		robot["coop_nav_prev_d"] = d_now
+		if float(robot.get("coop_nav_stuck_t", 0.0)) > 0.65 and d_now > 1.2:
+			# Detour: step sideways around blockage then re-approach final goal
+			var final_g: Vector3 = robot.get("coop_final_goal", fw) as Vector3
+			var to_f: Vector3 = final_g - myp
+			to_f.y = 0.0
+			if to_f.length_squared() < 1e-4:
+				to_f = _body_forward_dir(robot)
+			else:
+				to_f = to_f.normalized()
+			var rt := Vector3(-to_f.z, 0.0, to_f.x)
+			var det_side := 1.0 if int(robot.get("coop_detour_side", int(robot["id"]) % 2)) == 0 else -1.0
+			if float(robot.get("coop_nav_stuck_t", 0.0)) > 1.4:
+				det_side = -det_side  # flip after prolonged stuck
+				robot["coop_detour_side"] = 0 if det_side > 0.0 else 1
+			var detour: Vector3 = myp + rt * det_side * (2.8 + randf() * 0.8) + to_f * 2.0
+			detour.x = clampf(detour.x, -FIELD_HALF + 0.9, FIELD_HALF - 0.9)
+			detour.z = clampf(detour.z, -FIELD_HALF + 0.9, FIELD_HALF - 0.9)
+			fw = detour
+			robot["coop_nav_stuck_t"] = 0.35  # partial reset; allow re-trigger
+			robot["ai_want_sprint"] = true
+			# Brief unstuck reverse-poke if completely boxed
+			if float(robot.get("ai_unstuck_t", 0.0)) <= 0.0 and d_now > 0.8:
+				var bf := _body_forward_dir(robot)
+				var br := Vector3.UP.cross(bf)
+				if br.length_squared() > 1e-6:
+					br = br.normalized()
+					_begin_unstuck(robot, body, bf, br)
+		robot["ai_waypoint"] = fw
+		var asg2: Variant = team_coop.assigned_enemy(robots, robot)
+		if asg2 != null:
+			hunt = asg2
+		var dss: float = team_coop.drive_speed_scale(robot)
+		robot["ai_speed_scale"] = clampf(float(robot.get("ai_speed_scale", 1.0)) * dss, 0.4, 1.0)
+		if bool(robot.get("coop_rescue", false)) or bool(robot.get("coop_focus", false)):
+			robot["ai_want_sprint"] = true
+			if str(robot.get("ai_mode", "hunt")) != "disengage":
+				robot["ai_mode"] = "engage"
+		# Aim: nav heading when far, focus when close
+		_coop_force_aim_focus(robot)
+	var enemy: Variant = hunt
+	var body_fwd: Vector3 = _body_forward_dir(robot)
+	var body_right: Vector3 = Vector3.UP.cross(body_fwd)
+	if body_right.length_squared() < 1e-6:
+		body_right = Vector3.RIGHT
+	else:
+		body_right = body_right.normalized()
+
+	# Anti-camp / anti-orbit: small-area linger OR no closing distance → hard re-engage.
+	var camp_anchor: Vector3 = robot.get("ai_camp_anchor", body.global_position) as Vector3
+	var camp_r := 1.8 if late_game else 2.2
+	if body.global_position.distance_to(camp_anchor) > camp_r:
+		robot["ai_camp_anchor"] = body.global_position
+		robot["ai_camp_t"] = 0.0
+	else:
+		robot["ai_camp_t"] = float(robot.get("ai_camp_t", 0.0)) + delta
+	var camp_limit := 0.75 if late_game else 1.0
+	if (float(robot.get("ai_camp_t", 0.0)) > camp_limit or stall_loop) and float(robot.get("ai_hit_evade_t", 0.0)) <= 0.0:
+		robot["ai_camp_t"] = 0.0
+		robot["ai_no_close_t"] = 0.0
+		robot["ai_want_sprint"] = true
+		robot["ai_speed_scale"] = 1.0
+		# Coop: do NOT early-return orbit cut — keep progressive rescue/formation path
+		if _robot_is_coop(robot):
+			robot["ai_mode"] = "engage"
+			var wp_c: Vector3 = robot.get("ai_waypoint", body.global_position) as Vector3
+			var to_c: Vector3 = wp_c - body.global_position
+			to_c.y = 0.0
+			if to_c.length_squared() > 0.2:
+				robot["ai_waypoint"] = body.global_position + to_c.normalized() * minf(to_c.length(), 3.5)
+		else:
+			robot["ai_mode"] = "hunt"
+			var camp_foe: Variant = _nearest_enemy(robot)
+			var rush: Vector3
+			if camp_foe != null:
+				# Commit through enemy position (break mutual orbit).
+				rush = camp_foe["body"].global_position - body.global_position
+				rush.y = 0.0
+				if rush.length_squared() > 1e-4:
+					var rn := rush.normalized()
+					var cut := Vector3(-rn.z, 0.0, rn.x) * (3.5 if randf() > 0.5 else -3.5)
+					robot["ai_waypoint"] = camp_foe["body"].global_position + rn * 2.0 + cut
+					rush = (robot["ai_waypoint"] as Vector3) - body.global_position
+				else:
+					rush = Vector3(randf_range(-6.0, 6.0), 0.0, randf_range(-6.0, 6.0))
+				rush.y = 0.0
+				if rush.length_squared() < 0.2:
+					rush = body_fwd
+				else:
+					rush = rush.normalized()
+				return Vector2(
+					clampf(body_fwd.dot(rush) * 1.45, 0.4, 1.0),
+					clampf(body_right.dot(rush) * 0.7, -1.0, 1.0))
+
+	# Highest priority: just got hit → scramble off the fire line.
+	if float(robot.get("ai_hit_evade_t", 0.0)) > 0.0:
+		robot["ai_hit_evade_t"] = float(robot["ai_hit_evade_t"]) - delta
+		var wp_h: Vector3 = robot.get("ai_waypoint", Vector3.ZERO)
+		var to_h: Vector3 = wp_h - body.global_position
+		to_h.y = 0.0
+		if to_h.length_squared() < 0.35:
+			# Arrived pocket: keep strafing perpendicular to last shell
+			var inn: Vector3 = robot.get("ai_hit_from", body_fwd) as Vector3
+			inn.y = 0.0
+			if inn.length_squared() > 1e-6:
+				inn = inn.normalized()
+			var side_h := Vector3(-inn.z, 0.0, inn.x)
+			robot["ai_want_sprint"] = true
+			robot["ai_speed_scale"] = 0.9
+			return Vector2(0.2, clampf(body_right.dot(side_h) * 1.3, -1.0, 1.0))
+		var hdir := to_h.normalized()
+		var clear_h: Vector3 = _clearance_bias(body, hdir, body_right)
+		hdir = (hdir * 0.4 + clear_h * 0.6).normalized()
+		robot["ai_want_sprint"] = true
+		robot["ai_speed_scale"] = 1.0
+		return Vector2(
+			clampf(body_fwd.dot(hdir) * 1.25, 0.1, 1.0),
+			clampf(body_right.dot(hdir) * 1.3, -1.0, 1.0))
+
+	# Next: dodge incoming enemy shells (sprint).
+	var dodge: Vector3 = _shell_dodge_dir(robot)
+	if dodge.length_squared() > 1e-4:
+		robot["ai_want_sprint"] = true
+		robot["ai_speed_scale"] = 1.0
+		var f_d := clampf(body_fwd.dot(dodge) * 1.25, 0.0, 1.0)
+		var r_d := clampf(body_right.dot(dodge) * 1.45, -1.0, 1.0)
+		return Vector2(f_d, r_d)
+
+	# Disengage / break contact: run to escape waypoint, don't stick and trade.
+	if str(robot.get("ai_mode", "hunt")) == "disengage":
+		var wp_e: Vector3 = robot.get("ai_waypoint", Vector3.ZERO)
+		var to_esc: Vector3 = wp_e - body.global_position
+		to_esc.y = 0.0
+		if to_esc.length_squared() < 0.8:
+			# Finished short disengage → immediately re-hunt (no orbit strafe pocket).
+			robot["ai_mode"] = "hunt"
+			robot["ai_disengage_t"] = 0.0
+			robot["ai_repath_t"] = 0.0
+		else:
+			var esc_dir := to_esc.normalized()
+			var clear_e: Vector3 = _clearance_bias(body, esc_dir, body_right)
+			esc_dir = (esc_dir * 0.5 + clear_e * 0.5).normalized()
+			robot["ai_want_sprint"] = true
+			robot["ai_speed_scale"] = 1.0
+			var f_e := clampf(body_fwd.dot(esc_dir) * 1.25, 0.25, 1.0)
+			var r_e := clampf(body_right.dot(esc_dir) * 1.0, -1.0, 1.0)
+			return Vector2(f_e, r_e)
+
+	var desired := Vector3.ZERO
+	var wp0: Vector3 = robot.get("ai_waypoint", Vector3.ZERO)
+	var to_wp0: Vector3 = wp0 - body.global_position
+	to_wp0.y = 0.0
+	if enemy != null:
+		var to_en: Vector3 = enemy["body"].global_position - body.global_position
+		to_en.y = 0.0
+		var den: float = to_en.length()
+		if den > 0.05:
+			var dir_en := to_en / den
+			# Always bias hard toward the enemy (especially late game).
+			var commit := 0.9 if (late_game or den > 3.5) else 0.7
+			# Coop far transit / rescue: follow progressive waypoint (anti-hover)
+			if _robot_is_coop(robot) and (den > 3.5 or to_wp0.length() > 2.5):
+				commit = 0.22
+			if to_wp0.length_squared() > 0.25:
+				desired = (to_wp0.normalized() * (1.0 - commit) + dir_en * commit)
+			else:
+				desired = dir_en
+			if vis_lock and den < 3.0 and not (_robot_is_coop(robot) and to_wp0.length() > 2.8):
+				# In contact: still push forward, tiny lateral only.
+				desired = (dir_en * 0.85 + body_fwd * 0.15)
+	elif to_wp0.length_squared() > 0.35:
+		desired = to_wp0.normalized()
+	else:
+		desired = body_fwd * 0.9 + body_right * 0.15 * sin(sim_time * 0.7 + nphase)
+
+		# If no LOS, slide to a peek angle to create a shot.
+		var peek: Vector3 = _peek_shot_bias(robot, enemy)
+		if peek.length_squared() > 1e-4:
+			desired = desired * 0.55 + peek * 0.45
+
+	desired.y = 0.0
+	if desired.length_squared() < 1e-6:
+		desired = body_fwd
+	else:
+		desired = desired.normalized()
+
+	# Environment: strong free-space bias + peer separation
+	var clear_bias: Vector3 = _clearance_bias(body, desired, body_right)
+	desired = (desired * 0.72 + clear_bias * 0.28)  # prefer chase over local free-space camping
+	desired.y = 0.0
+	if desired.length_squared() > 1e-6:
+		desired = desired.normalized()
+
+	# Soft separation from teammates (prevents blob / mirror pile)
+	var sep := Vector3.ZERO
+	var my_pos: Vector3 = body.global_position
+	for other in robots:
+		if int(other["id"]) == int(robot["id"]):
+			continue
+		if not bool(other.get("alive", true)):
+			continue
+		var dvec: Vector3 = my_pos - other["body"].global_position
+		dvec.y = 0.0
+		var dlen: float = dvec.length()
+		if dlen < 1.8 and dlen > 1e-3:
+			var push: float = (1.8 - dlen) / 1.8
+			if int(other["team"]) == int(robot["team"]):
+				push *= 1.25  # stronger team separation
+			sep += dvec.normalized() * push
+	if sep.length_squared() > 1e-6:
+		desired = (desired + sep.normalized() * 0.35)
+		desired.y = 0.0
+		if desired.length_squared() > 1e-6:
+			desired = desired.normalized()
+
+	var f_in: float = clampf(body_fwd.dot(desired) * (0.85 + 0.45 * aggression), 0.0, 1.0)
+	var r_in: float = clampf(body_right.dot(desired) * (0.5 + sgain * 0.85), -1.0, 1.0)
+	# If target is behind, turn hard instead of reversing.
+	if body_fwd.dot(desired) < 0.15:
+		f_in = maxf(f_in, 0.15)
+		r_in = signf(body_right.dot(desired) if absf(body_right.dot(desired)) > 0.05 else float(robot.get("ai_orbit_dir", 1.0))) * maxf(absf(r_in), 0.8)
+	r_in = clampf(r_in + 0.1 * sin(sim_time * (1.05 + nfreq) + nphase * 2.1 + style), -1.0, 1.0)
+	# Role speed bias: rushers commit throttle
+	if role == 0:
+		f_in = clampf(f_in * 1.15, 0.0, 1.0)
+	elif role == 2:
+		r_in = clampf(r_in * 1.15, -1.0, 1.0)
+		f_in = maxf(f_in, 0.25)
+	# Variable speed: slow in hard turns, faster on straight approach/strafe
+	var turn_amt: float = absf(r_in) / maxf(absf(f_in) + absf(r_in), 0.15)
+	var speed_s := 0.72
+	var mode_s: String = str(robot.get("ai_mode", "hunt"))
+	if mode_s == "engage":
+		speed_s = 0.78 + 0.18 * aggression
+	elif mode_s == "disengage":
+		speed_s = 0.95
+	else:
+		# Hunt: stay fast while searching the field.
+		speed_s = 0.80 + 0.15 * aggression
+	# Turning → drop speed; pure forward → raise cruise
+	speed_s *= lerpf(1.05, 0.35, clampf(turn_amt, 0.0, 1.0))
+	if absf(f_in) > 0.7 and turn_amt < 0.35:
+		speed_s = maxf(speed_s, 0.72)
+	# Prefer sprint when hunting far targets / no vision lock yet.
+	var far_hunt := false
+	if enemy != null:
+		var d_h: float = body.global_position.distance_to(enemy["body"].global_position)
+		far_hunt = d_h > 4.0
+	robot["ai_want_sprint"] = far_hunt or (not vis_lock and mode_s == "hunt") or mode_s == "disengage"
+	if robot["ai_want_sprint"]:
+		speed_s = maxf(speed_s, 0.88)
+	f_in = maxf(f_in, 0.35 if mode_s == "hunt" else 0.2)
+	robot["ai_speed_scale"] = clampf(speed_s, 0.35, 1.0)
+	return Vector2(f_in, r_in)
+
+
+func _clearance_bias(body: CharacterBody3D, desired: Vector3, right: Vector3) -> Vector3:
+	## Prefer directions with more free space (7-ray cast over ~4m).
+	var origin: Vector3 = body.global_position + Vector3(0.0, 0.28, 0.0)
+	var space := get_world_3d().direct_space_state
+	var best_dir: Vector3 = desired
+	var best_score := -1.0
+	var angles: Array = [-1.2, -0.75, -0.35, 0.0, 0.35, 0.75, 1.2]
+	for a in angles:
+		var dir: Vector3 = desired.rotated(Vector3.UP, float(a))
+		dir.y = 0.0
+		if dir.length_squared() < 1e-6:
+			continue
+		dir = dir.normalized()
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + dir * 4.2)
+		query.collide_with_bodies = true
+		query.collide_with_areas = false
+		query.collision_mask = 1
+		query.exclude = [body.get_rid()]
+		var hit := space.intersect_ray(query)
+		var score: float = 4.2
+		if not hit.is_empty():
+			var hp: Vector3 = hit.get("position", origin)
+			score = origin.distance_to(hp)
+		# prefer desired heading slightly; penalize walls hard
+		score += 0.55 * maxf(0.0, dir.dot(desired))
+		if score > best_score:
+			best_score = score
+			best_dir = dir
+	return best_dir
+
+
+func _nearest_enemy(robot: Dictionary) -> Variant:
+	if _robot_is_coop(robot) and team_coop != null:
+		var asg: Variant = team_coop.assigned_enemy(robots, robot)
+		if asg != null:
+			return asg
+	var best: Variant = null
+	var best_d := INF
+	var my_pos: Vector3 = robot["body"].global_position
+	for other in robots:
+		if int(other["team"]) == int(robot["team"]):
+			continue
+		if not bool(other["alive"]):
+			continue
+		var d: float = my_pos.distance_squared_to(other["body"].global_position)
+		if d < best_d:
+			best_d = d
+			best = other
+	return best
+
+
+func _approach_speed(current: float, target: float, acceleration: float,
+		deceleration: float, delta: float) -> float:
+	var same_direction := is_zero_approx(current) or signf(current) == signf(target)
+	var speeding_up := same_direction and absf(target) > absf(current)
+	var rate := acceleration if speeding_up else deceleration
+	return move_toward(current, target, rate * delta)
+
+
+func _gimbal_world_yaw(robot: Dictionary) -> float:
+	var asm_y := 0.0
+	if robot.has("assembly") and robot["assembly"] != null:
+		asm_y = float(robot["assembly"].rotation.y)
+	return wrapf(robot["body"].rotation.y + asm_y + robot["yaw_axis"].rotation.y, -PI, PI)
+
+
+func _update_robot_gimbal(robot: Dictionary, delta: float) -> void:
+	var yaw_axis: Node3D = robot["yaw_axis"]
+	var pitch_axis: Node3D = robot["pitch_axis"]
+	var max_speed := 10.0
+	var angle_kp := 14.0
+	var speed_kp := 18.0
+	var speed_ki := 2.0
+
+	# AI tank: body follows command_yaw (vision / bore-sight / scan / coop focus).
+	if ai_enabled and bool(robot["auto_aim_enabled"]) and not (manual_control_mode and bool(robot.get("is_player", false))):
+		if exp_protocol != null and exp_protocol.active:
+			var lock_hold_p: bool = float(robot.get("fire_lock_until", -1.0)) > sim_time
+			if lock_hold_p:
+				var held_dir: Vector3 = robot.get("fire_lock_dir", Vector3.ZERO)
+				if held_dir.length_squared() > 0.25:
+					var want_yaw: float = _yaw_from_dir(held_dir)
+					robot["command_yaw"] = wrapf(want_yaw, -PI, PI)
+					robot["command_pitch"] = 0.0
+					var rel_track: float = wrapf(want_yaw - robot["body"].rotation.y, -PI, PI)
+					yaw_axis.rotation.y = clampf(rel_track, -1.20, 1.20)
+				pitch_axis.rotation.x = 0.0
+				return
+			if not exp_protocol.aim_is_fresh(robot, sim_time):
+				var lane_dir: Vector3 = exp_protocol.search_heading(robot, sim_time)
+				var slot_y: int = int(robot.get("id", 0)) % 3
+				var sweep: float = sin(sim_time * 0.9 + float(slot_y) * 1.7) * 0.28
+				robot["command_yaw"] = wrapf(_yaw_from_dir(lane_dir) + sweep, -PI, PI)
+				robot["command_pitch"] = 0.0
+				var scan_step: int = int(sim_time / 0.62) + slot_y
+				var scan_i: int = scan_step % 5
+				if scan_i < 0:
+					scan_i += 5
+				yaw_axis.rotation.y = -1.60 + float(scan_i) * 0.80
+				pitch_axis.rotation.x = 0.0
+				return
+			yaw_axis.rotation.y = 0.0
+			pitch_axis.rotation.x = 0.0
+			return
+		_coop_force_aim_focus(robot)
+		var vis_ok := _vision_target_fresh(robot, 3.0) or (_robot_is_coop(robot) and bool(robot.get("coop_shared_cue", false)))
+		var bore2: Variant = _find_enemy_on_muzzle_line(robot)
+		var soft2: Variant = null if (vis_ok or bore2 != null) else _pick_forward_visible_enemy(robot)
+		if not vis_ok and bore2 == null and soft2 == null:
+			# Active search sweep only when nothing is in view/on bore.
+			var sdir: float = float(robot.get("vision_scan_dir", 1.0))
+			if randf() < 0.006:
+				robot["vision_scan_dir"] = -sdir
+				sdir = float(robot["vision_scan_dir"])
+			robot["command_yaw"] = wrapf(float(robot.get("command_yaw", robot["body"].rotation.y)) + sdir * 1.35 * delta, -PI, PI)
+			robot["command_pitch"] = 0.0
+		elif soft2 != null and not vis_ok:
+			var to_s2: Vector3 = soft2["body"].global_position - robot["body"].global_position
+			to_s2.y = 0.0
+			if to_s2.length_squared() > 1e-4:
+				robot["command_yaw"] = _yaw_from_dir(to_s2)
+				robot["command_pitch"] = 0.0
+		# Lock empty gimbal; chassis turns whole vehicle to command_yaw.
+		yaw_axis.rotation.y = 0.0
+		pitch_axis.rotation.x = 0.0
+		return
+
+	if not bool(robot["auto_aim_enabled"]):
+		robot["command_yaw"] = robot["manual_yaw_target"]
+		robot["command_pitch"] = robot["manual_pitch_target"]
+		robot["command_yaw_velocity"] = 0.0
+		robot["command_yaw_acceleration"] = 0.0
+		robot["command_pitch_velocity"] = 0.0
+		robot["command_pitch_acceleration"] = 0.0
+
+	var current_world_yaw := _gimbal_world_yaw(robot)
+	var yaw_error := wrapf(float(robot["command_yaw"]) - current_world_yaw, -PI, PI)
+	var yaw_velocity_feedforward := float(robot["command_yaw_velocity"]) * auto_aim_yaw_velocity_feedforward
+	var desired_yaw_speed: float = clampf(yaw_error * angle_kp + yaw_velocity_feedforward, -max_speed, max_speed)
+	var yaw_speed_error := desired_yaw_speed - float(robot["yaw_velocity"])
+	robot["yaw_speed_integral"] = clampf(float(robot["yaw_speed_integral"]) + yaw_speed_error * delta, -4.0, 4.0)
+	var yaw_accel := clampf(
+		speed_kp * yaw_speed_error + speed_ki * float(robot["yaw_speed_integral"])
+		+ float(robot["command_yaw_acceleration"]) * auto_aim_yaw_acceleration_feedforward,
+		-planner_max_yaw_acc, planner_max_yaw_acc)
+	robot["yaw_velocity"] = float(robot["yaw_velocity"]) + yaw_accel * delta
+	var next_world_yaw := wrapf(current_world_yaw + float(robot["yaw_velocity"]) * delta, -PI, PI)
+	var _asm_y2 := 0.0
+	if robot.has("assembly") and robot["assembly"] != null:
+		_asm_y2 = float(robot["assembly"].rotation.y)
+	yaw_axis.rotation.y = wrapf(next_world_yaw - robot["body"].rotation.y - _asm_y2, -PI, PI)
+
+	var pitch_error := float(robot["command_pitch"]) - pitch_axis.rotation.x
+	var pitch_velocity_feedforward := float(robot["command_pitch_velocity"]) * auto_aim_pitch_velocity_feedforward
+	var desired_pitch_speed: float = clampf(pitch_error * angle_kp + pitch_velocity_feedforward, -max_speed, max_speed)
+	var pitch_speed_error := desired_pitch_speed - float(robot["pitch_velocity"])
+	robot["pitch_speed_integral"] = clampf(float(robot["pitch_speed_integral"]) + pitch_speed_error * delta, -4.0, 4.0)
+	var pitch_accel := clampf(
+		speed_kp * pitch_speed_error + speed_ki * float(robot["pitch_speed_integral"])
+		+ float(robot["command_pitch_acceleration"]) * auto_aim_pitch_acceleration_feedforward,
+		-planner_max_pitch_acc, planner_max_pitch_acc)
+	robot["pitch_velocity"] = float(robot["pitch_velocity"]) + pitch_accel * delta
+	var next_pitch := pitch_axis.rotation.x + float(robot["pitch_velocity"]) * delta
+	pitch_axis.rotation.x = clampf(next_pitch, -0.65, 0.65)
+	if not is_equal_approx(next_pitch, pitch_axis.rotation.x):
+		robot["pitch_velocity"] = 0.0
+		robot["pitch_speed_integral"] = 0.0
+
+
+func _update_robot_sensor_transform(robot: Dictionary) -> void:
+	var pitch_axis: Node3D = robot["pitch_axis"]
+	var sim_camera: Camera3D = robot["sim_camera"]
+	# Keep vision camera on the gimbal; slight up/back offset avoids seeing own armor plate.
+	var cam_xf := sensor_local_transform
+	if sensor_local_transform == Transform3D.IDENTITY:
+		cam_xf = Transform3D(Basis.IDENTITY, Vector3(0.0, 0.08, 0.05))
+	sim_camera.global_transform = pitch_axis.global_transform * cam_xf
+	if robot["is_player"] and player_camera != null:
+		player_camera.transform = cam_xf
+
+
+func _on_sensor_frame_pre_draw() -> void:
+	if capture_requested_id < 0:
+		return
+	if pending_captures.has(capture_requested_id):
+		return
+	var robot: Dictionary = robots[capture_requested_id]
+	var pitch_axis: Node3D = robot["pitch_axis"]
+	var sim_camera: Camera3D = robot["sim_camera"]
+	var camera_in_gimbal := pitch_axis.global_transform.affine_inverse() * sim_camera.global_transform
+	# Vision assist only if an enemy armor is in THIS camera's forward view + LOS.
+	# Not a map-wide oracle: no inject when target is behind / occluded / out of FOV.
+	var truth_target_world := Vector3.ZERO
+	var truth_valid := false
+	var cam_fwd: Vector3 = -sim_camera.global_transform.basis.z
+	cam_fwd.y = 0.0
+	if cam_fwd.length_squared() > 1e-8:
+		cam_fwd = cam_fwd.normalized()
+		var best_armor: Node3D = null
+		var best_along := INF
+		for other in robots:
+			if int(other["team"]) == int(robot["team"]):
+				continue
+			if not bool(other.get("alive", true)):
+				continue
+			if not _enemy_visible(robot, other):
+				continue
+			var armors: Array = other.get("armors", [])
+			for armor in armors:
+				if not (armor is Node3D):
+					continue
+				var ap: Vector3 = (armor as Node3D).global_position
+				var to_a: Vector3 = ap - sim_camera.global_position
+				var dist: float = to_a.length()
+				if dist < 0.4 or dist > 12.0:
+					continue
+				var dir_a := to_a / dist
+				# Inside ~camera FOV cone (cos half-angle ~ fov/2)
+				var half_fov := deg_to_rad(sim_camera.fov * 0.5)
+				if cam_fwd.dot(dir_a) < cos(half_fov):
+					continue
+				if dist < best_along:
+					best_along = dist
+					best_armor = armor as Node3D
+		if best_armor != null:
+			truth_target_world = best_armor.global_position - pitch_axis.global_position
+			truth_valid = true
+			var seen_flat: Vector3 = best_armor.global_position - robot["body"].global_position
+			seen_flat.y = 0.0
+			if seen_flat.length_squared() > 0.04:
+				robot["fire_lock_dir"] = seen_flat.normalized()
+				robot["fire_lock_dist"] = seen_flat.length()
+				robot["fire_lock_until"] = sim_time + 1.05
+				robot["vision_last_see_t"] = sim_time
+				robot["vision_has_target"] = true
+				robot["vision_age"] = 0.0
+				robot["vision_aim_valid"] = true
+				robot["vision_aim_world"] = best_armor.global_position
+	# Both teams keep the in-view assist: LOS and this camera FOV were already required.
+	pending_captures[capture_requested_id] = {
+		"robot_id": capture_requested_id,
+		"team": robot["team"],
+		"gimbal_rotation": pitch_axis.global_transform.basis.get_rotation_quaternion(),
+		"camera_in_gimbal": camera_in_gimbal,
+		"fov": sim_camera.fov,
+		"exposure": camera_exposure_multiplier,
+		"gamma": camera_gamma,
+		"truth_target_world": truth_target_world,
+		"truth_valid": truth_valid,
+		"timestamp_usec": Time.get_ticks_usec(),
+		"bullet_speed": bullet_speed,
+		"self_world": robot["body"].global_position,
+	}
+
+
+func _on_sensor_frame_post_draw() -> void:
+	if capture_requested_id < 0:
+		return
+	var rid := capture_requested_id
+	capture_requested_id = -1
+	if not pending_captures.has(rid):
+		return
+	var capture: Dictionary = pending_captures[rid]
+	pending_captures.erase(rid)
+	if not extension_ready:
+		return
+	var robot: Dictionary = robots[rid]
+	var image: Image = robot["viewport"].get_texture().get_image()
+	if image == null or image.is_empty():
+		return
+	# Keep last camera frame for dump on FIRE VISION / detect (R1 inspection).
+	robot["last_vision_image"] = image.duplicate()
+	# Save a few R1 frames when this capture had a FOV target (aim candidate).
+	if int(robot["id"]) == 0 and bool(capture.get("truth_valid", false)):
+		_save_r1_vision_image(image, "aim_fov", "truth_in_view")
+	# SubViewport may return FORMAT_RGBA8; bridge accepts RGB8/RGBA8.
+	bridge.submit_frame(
+		int(capture["robot_id"]),
+		int(capture["team"]),
+		image,
+		capture["gimbal_rotation"],
+		capture["camera_in_gimbal"],
+		capture["fov"],
+		capture["exposure"],
+		capture["gamma"],
+		capture["truth_target_world"],
+		capture["truth_valid"],
+		capture["timestamp_usec"],
+		capture["bullet_speed"],
+		capture.get("self_world", robot["body"].global_position))
+	robot["viewport"].render_target_update_mode = SubViewport.UPDATE_DISABLED
+
+
+func _poll_all_results() -> void:
+	for robot in robots:
+		var rid: int = robot["id"]
+		var result: Dictionary = bridge.poll_result(rid)
+		if not result.get("ready", false):
+			continue
+		var capture_timestamp: int = int(result.get("capture_timestamp_usec", -1))
+		if capture_timestamp < 0 or capture_timestamp <= int(robot["last_result_timestamp"]):
+			continue
+		robot["last_result_timestamp"] = capture_timestamp
+		robot["result_count"] = int(robot["result_count"]) + 1
+		robot["last_tracker_state"] = str(result.get("tracker_state", "?"))
+		robot["last_armor_count"] = int(result.get("armor_count", 0))
+		robot["last_total_ms"] = float(result.get("total_ms", 0.0))
+		if int(robot["last_armor_count"]) > 0:
+			robot["detection_count"] = int(robot["detection_count"]) + 1
+		if bool(result.get("control", false)):
+			robot["control_count"] = int(robot["control_count"]) + 1
+		var trk0 := str(result.get("tracker_state", ""))
+		var is_fusion_assist := trk0.begins_with("fusion_assist") or trk0.begins_with("fusion_fused") or bool(result.get("fusion_used_neighbors", false))
+		var allow_share := _robot_is_coop(robot)
+		# Solo: strip neighbor fusion — independent agents, no info sharing
+		if is_fusion_assist and not allow_share:
+			result["control"] = false
+			result["shoot"] = false
+			result["fusion_used_neighbors"] = false
+			result["tracker_state"] = "solo_no_share"
+			trk0 = "solo_no_share"
+		if bool(result.get("fusion_valid", false)) and allow_share:
+			robot["fusion_valid_count"] = int(robot["fusion_valid_count"]) + 1
+			var nb: int = int(result.get("fusion_neighbor_count", 0))
+			robot["last_fusion_neighbors"] = nb
+			if nb > int(robot["fusion_neighbor_count_max"]):
+				robot["fusion_neighbor_count_max"] = nb
+			# Multimodal fusion assist: any cross-robot neighbor contribution
+			var used_nb := bool(result.get("fusion_used_neighbors", false)) or nb > 0
+			var is_assist_tag := trk0.begins_with("fusion_assist") or trk0.begins_with("fusion_fused")
+			if used_nb or is_assist_tag:
+				robot["fusion_assist_count"] = int(robot["fusion_assist_count"]) + 1
+		elif not allow_share:
+			robot["last_fusion_neighbors"] = 0
+
+		# Vision closed-loop for ALL auto-aim robots (AI + manual).
+		robot["vision_age"] = 0.0
+		robot["vision_control"] = bool(result.get("control", false))
+		robot["vision_shoot"] = bool(result.get("shoot", false))
+		robot["vision_lock_quality"] = float(result.get("lock_quality", 0.0))
+		var armor_n2: int = int(result.get("armor_count", 0))
+		if is_fusion_assist and not allow_share:
+			armor_n2 = 0
+		robot["last_armor_count"] = armor_n2
+		var trk := trk0 if trk0 != "" else str(result.get("tracker_state", robot.get("last_tracker_state", "")))
+		robot["last_tracker_state"] = trk
+		# Only keep vision target when we actually see armor / valid control with armor.
+		if armor_n2 > 0:
+			robot["vision_has_target"] = true
+			robot["vision_last_see_t"] = sim_time  # last time camera pipeline saw armor
+			var tp_store: Vector3 = result.get("target_position", Vector3.ZERO)
+			tp_store.y = 0.0
+			var lock_ok: bool = tp_store.length() >= 0.35 and (bool(result.get("control", false)) or bool(result.get("shoot", false)))
+			if tp_store.length() >= 0.6:
+				lock_ok = true
+			if false:
+				robot["vision_aim_world"] = robot["body"].global_position + tp_store
+				robot["vision_aim_valid"] = true
+				if false:
+					var lock_dir: Vector3 = tp_store.normalized()
+					robot["fire_lock_dir"] = lock_dir
+					robot["fire_lock_dist"] = tp_store.length()
+					robot["fire_lock_until"] = sim_time + 1.5
+			else:
+				robot["vision_aim_valid"] = false
+			if int(robot["id"]) == 0:
+				_save_r1_vision_from_robot(robot, "detect", "armor=%d tracker=%s" % [
+					armor_n2, str(result.get("tracker_state", "?"))])
+		else:
+			# zero armor this frame → drop current vision fire lock (memory bore still uses last_see_t)
+			robot["vision_has_target"] = false
+			robot["vision_aim_valid"] = false
+			robot["vision_shoot"] = false
+			if not bool(robot["vision_control"]):
+				robot["vision_lock_quality"] = 0.0
+		if bool(robot.get("auto_aim_enabled", true)):
+			if exp_protocol != null and exp_protocol.active:
+				pass
+			elif bool(result.get("control", false)):
+				# Planner output (preferred).
+				robot["command_yaw"] = float(result.get("yaw_rad", robot["command_yaw"]))
+				robot["command_pitch"] = -float(result.get("pitch_rad", -float(robot.get("command_pitch", 0.0))))
+				robot["command_yaw_velocity"] = float(result.get("yaw_velocity_rad_s", 0.0))
+				robot["command_yaw_acceleration"] = float(result.get("yaw_acceleration_rad_s2", 0.0))
+				robot["command_pitch_velocity"] = -float(result.get("pitch_velocity_rad_s", 0.0))
+				robot["command_pitch_acceleration"] = -float(result.get("pitch_acceleration_rad_s2", 0.0))
+			elif armor_n2 > 0 and exp_protocol != null and exp_protocol.active:
+				var tp_aim: Vector3 = result.get("target_position", Vector3.ZERO)
+				tp_aim.y = 0.0
+				if tp_aim.length_squared() > 1e-4:
+					robot["command_yaw"] = _yaw_from_dir(tp_aim)
+					robot["command_pitch"] = 0.0
+			elif armor_n2 > 0:
+				var bore_p: Variant = _find_enemy_on_muzzle_line(robot)
+				if bore_p == null:
+					bore_p = _pick_forward_visible_enemy(robot)
+				if bore_p != null:
+					var to_bp: Vector3 = bore_p["body"].global_position - robot["body"].global_position
+					to_bp.y = 0.0
+					if to_bp.length_squared() > 1e-4:
+						robot["command_yaw"] = _yaw_from_dir(to_bp)
+			elif _robot_is_coop(robot) and team_coop != null and not (exp_protocol != null and exp_protocol.active):
+				var asg_aim: Variant = team_coop.assigned_enemy(robots, robot)
+				if asg_aim != null and bool(robot.get("coop_shared_cue", false)):
+					var to_sa: Vector3 = asg_aim["body"].global_position - robot["body"].global_position
+					to_sa.y = 0.0
+					if to_sa.length_squared() > 1e-4:
+						robot["command_yaw"] = _yaw_from_dir(to_sa)
+		if exp_protocol != null and exp_protocol.active:
+			if extension_ready and bridge != null:
+				robot["bridge_stats"] = bridge.get_runtime_stats()
+			exp_protocol.ingest_result(robot, result, sim_time, robots)
+
+func _update_hud() -> void:
+	if hud_label == null:
+		return
+	var vp_size: Vector2 = get_viewport().get_visible_rect().size
+	# Center reticle for video aim
+	if aim_reticle != null:
+		aim_reticle.position = Vector2(vp_size.x * 0.5 - 12.0, vp_size.y * 0.5 - 22.0)
+		aim_reticle.visible = true
+	if aim_status_label != null:
+		aim_status_label.position = Vector2(vp_size.x * 0.5 - 120.0, vp_size.y * 0.5 + 18.0)
+		aim_status_label.size = Vector2(240, 28)
+
+	var lines: PackedStringArray = []
+	var stats := {}
+	if extension_ready and bridge != null:
+		stats = bridge.get_runtime_stats()
+	var view_name := "俯视(旋转/缩放)" if overview_mode else "第一人称"
+	lines.append("3v3 online=%s  view=%s  距离=%.1fm  方位=%.0f°  俯仰=%.0f°" % [
+		str(extension_ready), view_name, orbit_distance,
+		rad_to_deg(orbit_yaw), rad_to_deg(orbit_pitch),
+	])
+	var coop_txt := "红%s 蓝%s" % [
+		("COOP" if coop_red else "SOLO"),
+		("COOP" if coop_blue else "SOLO"),
+	]
+	if exp_protocol != null and exp_protocol.active:
+		coop_txt = "红%s 蓝%s" % [exp_protocol.team_rule_text(0), exp_protocol.team_rule_text(1)]
+	var mode_txt := "自动(全车AI)" if not manual_control_mode else "手动(操控选中车)"
+	var focus_txt := "—"
+	if not robots.is_empty():
+		focus_txt = _robot_label(robots[player_robot_id])
+	lines.append("规则: %s  |  操控: %s  |  焦点: %s  |  K切换双方" % [coop_txt, mode_txt, focus_txt])
+	var hit_sum := "被击中: "
+	for hr in robots:
+		var tg := "红" if int(hr["team"]) == TEAM_RED else "蓝"
+		var nn := int(hr.get("number", int(hr["id"]) % ROBOTS_PER_TEAM + 1))
+		var tk := int(hr.get("hit_taken", 0))
+		var st := ("(----)已击毁" if not bool(hr.get("alive", true)) else str(tk))
+		hit_sum += "%s%d:%s  " % [tg, nn, st]
+	lines.append(hit_sum)
+	if match_over:
+		lines.append("★★ %s ★★" % match_result_text)
+	lines.append("vision submitted=%s processed=%s dropped=%s queue=%s" % [
+		str(stats.get("submitted", 0)), str(stats.get("processed", 0)),
+		str(stats.get("dropped", 0)), str(stats.get("queue_depth", 0)),
+	])
+
+	var red_hits := 0
+	var blue_hits := 0
+	var red_shots := 0
+	var blue_shots := 0
+	for robot in robots:
+		var team_tag := "R" if int(robot["team"]) == TEAM_RED else "B"
+		var num := int(robot.get("number", int(robot["id"]) % ROBOTS_PER_TEAM + 1))
+		var mark := "*" if bool(robot["is_player"]) else " "
+		var shots_i := int(robot["shots"])
+		var hits_i := int(robot["hits"])
+		var rate := (100.0 * float(hits_i) / float(shots_i)) if shots_i > 0 else 0.0
+		var aiming := "自瞄"
+		if manual_control_mode and bool(robot["is_player"]):
+			aiming = "手动"
+		elif bool(robot["auto_aim_enabled"]):
+			aiming = "自瞄"
+		else:
+			aiming = "手动"
+		var tracker := str(robot["last_tracker_state"])
+		var fire_flag := ""
+		if bool(robot.get("manual_fire_pressed", false)):
+			fire_flag = " 开火中"
+		elif auto_fire_all and bool(robot.get("auto_aim_enabled", true)) and tracker == "tracking":
+			fire_flag = " 可开火"
+		var taken_i := int(robot.get("hit_taken", 0))
+		if bool(robot.get("alive", true)):
+			lines.append("%s%s%d [%s] 被击中:%d/%d%s | 发射%d 命中敌%d" % [
+				mark, team_tag, num, aiming,
+				taken_i, ARMOR_HP, fire_flag,
+				shots_i, hits_i,
+			])
+		else:
+			lines.append("%s%s%d  (----)已击毁  累计被击中:%d" % [
+				mark, team_tag, num, taken_i,
+			])
+		if int(robot["team"]) == TEAM_RED:
+			red_hits += hits_i
+			red_shots += shots_i
+		else:
+			blue_hits += hits_i
+			blue_shots += shots_i
+
+	var red_rate := (100.0 * float(red_hits) / float(red_shots)) if red_shots > 0 else 0.0
+	var blue_rate := (100.0 * float(blue_hits) / float(blue_shots)) if blue_shots > 0 else 0.0
+	var total_shots := red_shots + blue_shots
+	var total_hits := red_hits + blue_hits
+	var total_rate := (100.0 * float(total_hits) / float(total_shots)) if total_shots > 0 else 0.0
+	lines.append("SCORE 红队 发射%d 命中%d 率%.1f%% | 蓝队 发射%d 命中%d 率%.1f%% | 全场 发射%d 命中%d 率%.1f%% | t=%.1fs" % [
+		red_shots, red_hits, red_rate, blue_shots, blue_hits, blue_rate,
+		total_shots, total_hits, total_rate, sim_time,
+	])
+	hud_label.text = "\n".join(lines)
+
+	if not robots.is_empty():
+		var pr: Dictionary = robots[player_robot_id]
+		var p_shots := int(pr.get("shots", 0))
+		var p_hits := int(pr.get("hits", 0))
+		var p_rate := (100.0 * float(p_hits) / float(p_shots)) if p_shots > 0 else 0.0
+		var aim_on := bool(pr.get("auto_aim_enabled", false))
+		var tracker := str(pr.get("last_tracker_state", "—"))
+		var team_name := "红" if int(pr.get("team", 0)) == TEAM_RED else "蓝"
+		var arm_n := int(pr.get("last_armor_count", 0))
+		# Video-aim status under crosshair
+		if aim_status_label != null:
+			var aim_txt := "视频瞄准: "
+			if tracker == "tracking":
+				aim_txt += "锁定中"
+				aim_status_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3))
+				if aim_reticle != null:
+					aim_reticle.add_theme_color_override("font_color", Color(0.15, 1.0, 0.25))
+			elif tracker.contains("detect") or tracker == "detecting":
+				aim_txt += "检测中"
+				aim_status_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+				if aim_reticle != null:
+					aim_reticle.add_theme_color_override("font_color", Color(1.0, 0.85, 0.15))
+			else:
+				aim_txt += tracker
+				aim_status_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.35))
+				if aim_reticle != null:
+					aim_reticle.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3))
+			if aim_on:
+				aim_txt += " | 自瞄"
+			else:
+				aim_txt += " | 手动"
+			if arm_n > 0:
+				aim_txt += " | 目标x%d" % arm_n
+			aim_status_label.text = aim_txt
+
+		if combat_hud_label != null:
+			var combat := PackedStringArray()
+			combat.append("════ 操控 / 射击统计 ════")
+			combat.append("全局模式: %s" % ("自动(全车AI)" if not manual_control_mode else "手动操控"))
+			combat.append("焦点车辆: %s%d%s" % [
+				team_name, int(pr.get("number", 1)),
+				" [操作中]" if manual_control_mode else " [仅观察]",
+			])
+			combat.append("瞄准: %s" % ("自瞄" if aim_on else "手动"))
+			combat.append("视频跟踪: %s" % tracker)
+			combat.append("装甲检测: %d" % arm_n)
+			combat.append("本队规则: %s  |  融合邻机: %d  |  共享线索: %s" % [
+				(exp_protocol.team_rule_text(int(pr["team"])) if exp_protocol != null and exp_protocol.active else ("有协同COOP" if _robot_is_coop(pr) else "无协同SOLO")),
+				int(pr.get("last_fusion_neighbors", 0)),
+				("是" if bool(pr.get("coop_shared_cue", false)) else "否"),
+			])
+			combat.append("协同状态: %s" % (team_coop.status_line(pr) if team_coop != null else "?"))
+			combat.append("手动开火(Space/J): %s" % (
+				"是" if bool(pr.get("manual_fire_pressed", false)) else "否"))
+			combat.append("AI开火: %s (仅炮管直线有敌)" % ("开" if auto_fire_all else "关"))
+			combat.append("提示: T切换自动/手动 | 1-6选车")
+			combat.append("────────────")
+			combat.append("发射总数:  %d" % p_shots)
+			combat.append("命中数:    %d" % p_hits)
+			combat.append("命中率:    %.1f%%" % p_rate)
+			combat.append("────────────")
+			combat.append("【PK】红存活%d 蓝存活%d | 命中分 红%d 蓝%d | 剩余%.0fs" % [
+				_team_alive_count(TEAM_RED), _team_alive_count(TEAM_BLUE),
+				red_hits, blue_hits, maxf(0.0, MATCH_TIME_LIMIT - sim_time)])
+			if match_over:
+				combat.append("★★ %s ★★" % match_result_text)
+			combat.append("红队 发射%d 命中%d (%.1f%%)" % [red_shots, red_hits, red_rate])
+			combat.append("蓝队 发射%d 命中%d (%.1f%%)" % [blue_shots, blue_hits, blue_rate])
+			combat.append("全场 发射%d 命中%d (%.1f%%)" % [total_shots, total_hits, total_rate])
+			combat_hud_label.text = "\n".join(combat)
+			combat_hud_label.position = Vector2(12, maxf(280.0, vp_size.y - 400.0))
+			combat_hud_label.size = Vector2(440, 400)
+
+
+
+func _fire_projectile(robot: Dictionary) -> void:
+	var pitch_axis: Node3D = robot["pitch_axis"]
+	var body: Node3D = robot["body"]
+	var projectile := Node3D.new()
+	projectile.set_script(ProjectileScript)
+	add_child(projectile)
+	# Spawn at ORIGINAL gun tip, direction = original gun barrel (same red/blue).
+	var direction := _gun_world_dir(robot)
+	var origin: Vector3 = _gun_tip_world(robot)
+	# AI: vision lock OR bore-sight enemy; never score friendlies (armor filter).
+	var line_enemy: Variant = _find_enemy_on_muzzle_line(robot)
+	var is_manual_shot := bool(robot.get("is_player", false)) and manual_control_mode
+	if not is_manual_shot:
+		var may_fire := _can_ai_fire_closed_loop(robot)
+		if not may_fire:
+			projectile.queue_free()
+			return
+		# Legacy coop shell steers onto the true body. Fair matches keep the barrel direction.
+		if not (exp_protocol != null and exp_protocol.active) and _robot_is_coop(robot) and team_coop != null:
+			var focus: Variant = team_coop.assigned_enemy(robots, robot)
+			if focus != null:
+				var aim_pt: Vector3 = focus["body"].global_position + Vector3(0.0, 0.22, 0.0)
+				var to_f: Vector3 = aim_pt - origin
+				if to_f.length_squared() > 1e-6:
+					var want := to_f.normalized()
+					# Strong blend when facing roughly correctly; weak if way off
+					var align := direction.dot(want)
+					if align > 0.15:
+						var w := 0.78
+						if bool(robot.get("coop_rescue", false)):
+							w = 0.88
+						elif team_coop != null and team_coop.is_asymmetric():
+							w = 0.82  # organic whole vs independent agents
+						direction = (direction * (1.0 - w) + want * w).normalized()
+	if projectile.has_method("setup_team"):
+		projectile.setup_team(origin, direction, bullet_speed, int(robot["team"]), int(robot["id"]))
+	else:
+		projectile.setup(origin, direction, bullet_speed)
+	var rid: int = int(robot["id"])
+	var shot_dir: Vector3 = direction
+	projectile.resolved.connect(func(hit: bool, victim_id: int = -1):
+		if not hit:
+			return
+		# Ignore wreck hits (armor group leak / overkill) — do not score or retarget
+		if victim_id >= 0 and victim_id < robots.size():
+			if not bool(robots[victim_id].get("alive", true)):
+				return
+		# Shooter score (only living victims)
+		for r in robots:
+			if int(r["id"]) == rid:
+				r["hits"] = int(r["hits"]) + 1
+				print("HIT robot=", rid, " total_hits=", r["hits"], " victim=", victim_id)
+				break
+		# Victim must scramble immediately to avoid the next shell.
+		if victim_id >= 0:
+			for r2 in robots:
+				if int(r2["id"]) == victim_id:
+					_on_robot_armor_hit(r2, shot_dir, rid)
+					break
+	)
+	robot["shots"] = int(robot["shots"]) + 1
+
+
+func _input(event: InputEvent) -> void:
+	# Overview: 左键平移 | 右键旋转 | 滚轮/中键缩放 | Tab 俯视全场
+	if overview_mode and not config_panel.visible:
+		if event is InputEventMouseButton:
+			var mb := event as InputEventMouseButton
+			if mb.button_index == MOUSE_BUTTON_LEFT:
+				orbit_pan_dragging = mb.pressed
+				orbit_dragging = mb.pressed or orbit_rot_dragging
+				if mb.pressed:
+					orbit_last_mouse = mb.position
+				get_viewport().set_input_as_handled()
+				return
+			if mb.button_index == MOUSE_BUTTON_RIGHT:
+				orbit_rot_dragging = mb.pressed
+				orbit_dragging = mb.pressed or orbit_pan_dragging
+				if mb.pressed:
+					orbit_last_mouse = mb.position
+				get_viewport().set_input_as_handled()
+				return
+			if mb.button_index == MOUSE_BUTTON_MIDDLE:
+				orbit_dragging = mb.pressed
+				if mb.pressed:
+					orbit_last_mouse = mb.position
+				get_viewport().set_input_as_handled()
+				return
+			if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
+				orbit_distance = maxf(orbit_min_distance, orbit_distance / orbit_zoom_step - orbit_zoom_linear)
+				_apply_orbit_camera()
+				get_viewport().set_input_as_handled()
+				return
+			if mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
+				orbit_distance = minf(orbit_max_distance, orbit_distance * orbit_zoom_step + orbit_zoom_linear)
+				_apply_orbit_camera()
+				get_viewport().set_input_as_handled()
+				return
+		if event is InputEventMouseMotion and orbit_dragging:
+			var mm := event as InputEventMouseMotion
+			var delta: Vector2 = mm.position - orbit_last_mouse
+			if delta.length_squared() < 1e-6:
+				delta = mm.relative
+			orbit_last_mouse = mm.position
+			if orbit_pan_dragging:
+				var right := Vector3(cos(orbit_yaw), 0.0, -sin(orbit_yaw))
+				var fwd := Vector3(sin(orbit_yaw), 0.0, cos(orbit_yaw))
+				var scale := orbit_pan_sensitivity * maxf(orbit_distance, 4.0)
+				orbit_focus -= right * delta.x * scale
+				orbit_focus += fwd * delta.y * scale
+				orbit_focus.x = clampf(orbit_focus.x, -FIELD_HALF, FIELD_HALF)
+				orbit_focus.z = clampf(orbit_focus.z, -FIELD_HALF, FIELD_HALF)
+				orbit_focus.y = 0.0
+			elif orbit_rot_dragging:
+				orbit_yaw -= delta.x * orbit_sensitivity
+				orbit_pitch -= delta.y * orbit_sensitivity
+			else:
+				orbit_distance = clampf(orbit_distance + delta.y * 0.05, orbit_min_distance, orbit_max_distance)
+			_apply_orbit_camera()
+			get_viewport().set_input_as_handled()
+			return
+		return
+
+	if config_panel.visible:
+		return
+
+	var player: Dictionary = robots[player_robot_id]
+	if event is InputEventMouseMotion and gameplay_controls_enabled:
+		if not bool(player["auto_aim_enabled"]):
+			player["manual_yaw_target"] = wrapf(
+				float(player["manual_yaw_target"]) - event.relative.x * mouse_sensitivity, -PI, PI)
+			player["manual_pitch_target"] = clampf(
+				float(player["manual_pitch_target"]) - event.relative.y * mouse_sensitivity, -0.65, 0.65)
+			get_viewport().set_input_as_handled()
+			return
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_RIGHT and gameplay_controls_enabled and \
+			Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			player["auto_aim_enabled"] = event.pressed
+			if not event.pressed:
+				player["manual_yaw_target"] = _gimbal_world_yaw(player)
+				player["manual_pitch_target"] = player["pitch_axis"].rotation.x
+			get_viewport().set_input_as_handled()
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			# LMB fires only in first-person manual control (overview LMB = orbit).
+			if manual_control_mode and not overview_mode:
+				if event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+					gameplay_controls_enabled = true
+				player["manual_fire_pressed"] = event.pressed and gameplay_controls_enabled
+				get_viewport().set_input_as_handled()
+
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not event is InputEventKey or event.echo:
+		return
+	var key_ev := event as InputEventKey
+	# Space / J: hold to fire in manual mode (press + release)
+	if key_ev.keycode == KEY_SPACE or key_ev.keycode == KEY_J:
+		if manual_control_mode and not robots.is_empty():
+			robots[player_robot_id]["manual_fire_pressed"] = key_ev.pressed and not config_panel.visible
+			get_viewport().set_input_as_handled()
+		return
+	if not key_ev.pressed:
+		return
+	match key_ev.keycode:
+		KEY_T:
+			# Toggle AUTO (all AI fire) <-> MANUAL (selected car drive/fire)
+			_set_manual_control_mode(not manual_control_mode)
+			get_viewport().set_input_as_handled()
+		KEY_TAB:
+			# Top-down full arena overview.
+			overview_mode = true
+			orbit_dragging = false
+			orbit_pan_dragging = false
+			orbit_rot_dragging = false
+			if not manual_control_mode:
+				gameplay_controls_enabled = false
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			_orbit_focus_field()
+			_set_active_camera()
+		KEY_G:
+			# First-person drive / aim mode (forces manual control)
+			if not manual_control_mode:
+				_set_manual_control_mode(true)
+			overview_mode = false
+			orbit_dragging = false
+			gameplay_controls_enabled = true
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			_set_active_camera()
+		KEY_F:
+			if overview_mode:
+				_orbit_focus_on_player()
+			else:
+				overview_mode = true
+				if not manual_control_mode:
+					gameplay_controls_enabled = false
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+				_set_active_camera()
+		KEY_H:
+			overview_mode = true
+			orbit_dragging = false
+			if not manual_control_mode:
+				gameplay_controls_enabled = false
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			_orbit_focus_field()
+			overview_camera.current = true
+			player_camera.current = false
+		KEY_C:
+			config_panel.visible = not config_panel.visible
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if config_panel.visible or overview_mode \
+				else Input.MOUSE_MODE_CAPTURED
+		KEY_ESCAPE:
+			# Exit manual control back to full auto
+			if manual_control_mode:
+				_set_manual_control_mode(false)
+			gameplay_controls_enabled = false if not manual_control_mode else true
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			if not robots.is_empty():
+				robots[player_robot_id]["manual_fire_pressed"] = false
+		KEY_R:
+			_reset_simulation()
+		KEY_K:
+			# Cycle: both solo -> both coop -> red solo blue coop -> red coop blue solo
+			if not coop_red and not coop_blue:
+				coop_red = true
+				coop_blue = true
+			elif coop_red and coop_blue:
+				coop_red = false
+				coop_blue = true
+			elif (not coop_red) and coop_blue:
+				coop_red = true
+				coop_blue = false
+			else:
+				coop_red = false
+				coop_blue = false
+			coop_mode = coop_red or coop_blue
+			if team_coop != null:
+				team_coop.set_team_modes(coop_red, coop_blue)
+			print("TOGGLE RULE -> red=", ("COOP" if coop_red else "SOLO"),
+				" blue=", ("COOP" if coop_blue else "SOLO"))
+
+		KEY_V:
+			_dump_verification()
+		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
+			# 1-3 red, 4-6 blue  => robot ids 0..5
+			var new_id: int = int(key_ev.keycode) - int(KEY_1)
+			if new_id >= 0 and new_id < ROBOT_COUNT:
+				_set_player_robot(new_id)
+				# Selecting a car while in auto mode only focuses; press T to take over.
+		KEY_Q:
+			if manual_control_mode and gameplay_controls_enabled:
+				var p: Dictionary = robots[player_robot_id]
+				p["chassis_gyro_direction"] = GYRO_DISABLED \
+					if int(p["chassis_gyro_direction"]) == GYRO_COUNTERCLOCKWISE \
+					else GYRO_COUNTERCLOCKWISE
+		KEY_E:
+			if manual_control_mode and gameplay_controls_enabled:
+				var p2: Dictionary = robots[player_robot_id]
+				p2["chassis_gyro_direction"] = GYRO_DISABLED \
+					if int(p2["chassis_gyro_direction"]) == GYRO_CLOCKWISE \
+					else GYRO_CLOCKWISE
+
+
+func _robot_label(robot: Dictionary) -> String:
+	var team_tag := "红" if int(robot["team"]) == TEAM_RED else "蓝"
+	return "%s%d" % [team_tag, int(robot.get("number", 1))]
+
+
+func _set_manual_control_mode(enabled: bool) -> void:
+	manual_control_mode = enabled
+	if enabled:
+		# Take over currently focused robot; others stay full AI.
+		auto_fire_all = true  # other robots keep auto-firing
+		gameplay_controls_enabled = true
+		for r in robots:
+			var rid := int(r["id"])
+			var take := rid == player_robot_id
+			r["is_player"] = take
+			r["auto_aim_enabled"] = true  # aim assist remains on
+			r["manual_fire_pressed"] = false
+			if not take:
+				r["chassis_gyro_direction"] = GYRO_DISABLED
+		print("CONTROL: MANUAL on ", _robot_label(robots[player_robot_id]),
+			"  (WASD move, Space/J fire, 1-6 select, T back to auto)")
+	else:
+		# All six fully autonomous again.
+		auto_fire_all = true
+		ai_enabled = true
+		for r in robots:
+			r["is_player"] = int(r["id"]) == player_robot_id  # focus mark only
+			r["auto_aim_enabled"] = true
+			r["manual_fire_pressed"] = false
+			r["chassis_gyro_direction"] = GYRO_DISABLED
+		print("CONTROL: AUTO — all 6 robots move/aim/fire autonomously (T for manual)")
+	if autofire_check != null:
+		autofire_check.set_pressed_no_signal(auto_fire_all)
+	if ai_check != null:
+		ai_check.set_pressed_no_signal(ai_enabled)
+	_attach_player_camera()
+	_orbit_focus_on_player()
+
+
+func _attach_player_camera() -> void:
+	if player_camera == null or robots.is_empty():
+		return
+	if player_camera.get_parent() != null:
+		player_camera.get_parent().remove_child(player_camera)
+	var neu: Dictionary = robots[player_robot_id]
+	neu["pitch_axis"].add_child(player_camera)
+	_set_active_camera()
+
+
+func _set_player_robot(new_id: int) -> void:
+	if new_id < 0 or new_id >= robots.size():
+		return
+	if new_id == player_robot_id and bool(robots[new_id].get("is_player", false)):
+		# Still refresh camera focus
+		_orbit_focus_on_player()
+		return
+	# Clear previous selection
+	for r in robots:
+		r["is_player"] = false
+		r["manual_fire_pressed"] = false
+		if not manual_control_mode:
+			r["auto_aim_enabled"] = true
+	player_robot_id = new_id
+	var neu: Dictionary = robots[player_robot_id]
+	neu["is_player"] = true
+	neu["auto_aim_enabled"] = true
+	neu["manual_yaw_target"] = _gimbal_world_yaw(neu)
+	neu["manual_pitch_target"] = neu["pitch_axis"].rotation.x
+	if manual_control_mode:
+		gameplay_controls_enabled = true
+		print("CONTROL: selected ", _robot_label(neu), " for manual drive/fire")
+	else:
+		print("FOCUS: ", _robot_label(neu), " (still AUTO — press T for manual)")
+	_attach_player_camera()
+	_orbit_focus_on_player()
+
+
+func _reset_simulation() -> void:
+	## Full match reset: pose, HP, collisions, AI state, FX; destroyed cars respawn.
+	manual_control_mode = false
+	auto_fire_all = true
+	ai_enabled = true
+	gameplay_controls_enabled = false
+	overview_mode = true
+	for projectile in get_tree().get_nodes_in_group("sim_projectile"):
+		if is_instance_valid(projectile):
+			projectile.queue_free()
+	for fx in get_tree().get_nodes_in_group("armor_hit_fx"):
+		if is_instance_valid(fx):
+			fx.queue_free()
+	sim_time = 0.0
+	match_over = false
+	match_winner = -1
+	match_result_text = ""
+	capture_accumulator = 0.0
+	capture_requested_id = -1
+	capture_cursor = 0
+	pending_captures.clear()
+	hud_accum = 0.0
+	for i in range(robots.size()):
+		var robot: Dictionary = robots[i]
+		var spawn: Dictionary = SPAWN_POSES[i]
+		var body: CharacterBody3D = robot["body"]
+		var spos: Vector3 = spawn["pos"]
+		var steam: int = int(spawn["team"])
+		# Respawn eliminated vehicles
+		body.collision_layer = 1
+		body.collision_mask = 1
+		body.velocity = Vector3.ZERO
+		body.global_position = Vector3(spos.x, 0.0, spos.z)
+		if robot.has("assembly") and robot["assembly"] != null:
+			robot["assembly"].rotation = Vector3.ZERO
+			robot["assembly"].visible = true
+		body.visible = true
+		_face_enemy_camp(body, steam)
+		var vr2: Node3D = null
+		if robot.has("assembly"):
+			vr2 = robot["assembly"].get_node_or_null("ChassisVisual") as Node3D
+		body.rotation = Vector3.ZERO
+		if vr2 != null:
+			_auto_align_mesh_to_original_gun(vr2, body)
+		_face_enemy_camp(body, steam)
+		body.force_update_transform()
+		if vr2 != null:
+			_cache_gun_local(robot, vr2)
+		robot["yaw_axis"].rotation = Vector3.ZERO
+		robot["pitch_axis"].rotation = Vector3.ZERO
+		robot["command_yaw"] = body.rotation.y
+		robot["command_pitch"] = 0.0
+		robot["yaw_velocity"] = 0.0
+		robot["pitch_velocity"] = 0.0
+		robot["yaw_speed_integral"] = 0.0
+		robot["pitch_speed_integral"] = 0.0
+		robot["chassis_yaw_velocity"] = 0.0
+		robot["chassis_gyro_direction"] = GYRO_DISABLED
+		robot["manual_yaw_target"] = body.rotation.y
+		robot["manual_pitch_target"] = 0.0
+		robot["manual_fire_pressed"] = false
+		robot["shoot_cooldown"] = 0.0
+		robot["shots"] = 0
+		robot["hits"] = 0
+		robot["hit_taken"] = 0
+		robot["alive"] = true
+		robot["ai_mode"] = "hunt"
+		robot["ai_duel_t"] = 0.0
+		robot["ai_disengage_t"] = 0.0
+		robot["ai_hit_evade_t"] = 0.0
+		robot["ai_unstuck_t"] = 0.0
+		robot["ai_stuck_time"] = 0.0
+		robot["ai_camp_t"] = 0.0
+		robot["ai_camp_anchor"] = body.global_position
+		robot["ai_shots_burst"] = 0
+		robot["ai_target_id"] = -1
+		robot["ai_want_sprint"] = false
+		robot["ai_speed_scale"] = 0.6
+		robot["last_result_timestamp"] = -1
+		robot["result_count"] = 0
+		robot["detection_count"] = 0
+		robot["control_count"] = 0
+		robot["fusion_valid_count"] = 0
+		robot["fusion_neighbor_count_max"] = 0
+		robot["fusion_assist_count"] = 0
+		robot["last_fusion_neighbors"] = 0
+		robot["last_tracker_state"] = "reset"
+		robot["auto_aim_enabled"] = true
+		robot["is_player"] = int(robot["id"]) == player_robot_id
+		var cr = robot.get("comm_root", null)
+		if cr != null and is_instance_valid(cr):
+			cr.visible = true
+	if extension_ready and bridge != null:
+		bridge.reset()
+	_orbit_focus_field()
+	_set_active_camera()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_update_hud()
+	print("3v3 simulation FULL reset (all vehicles respawned)")
+
+
+func _dump_verification() -> void:
+	var report := {
+		"extension_ready": extension_ready,
+		"sim_time": sim_time,
+		"camera_hz": camera_hz,
+		"camera_size": [camera_size.x, camera_size.y],
+		"robots": [],
+	}
+	if extension_ready and bridge != null:
+		report["runtime_stats"] = bridge.get_runtime_stats()
+	for robot in robots:
+		report["robots"].append({
+			"id": robot["id"],
+			"team": robot["team"],
+			"results": robot["result_count"],
+			"detections": robot["detection_count"],
+			"controls": robot["control_count"],
+			"fusion_valid": robot.get("fusion_valid_count", 0),
+			"fusion_neighbors_max": robot.get("fusion_neighbor_count_max", 0),
+			"fusion_assist": robot.get("fusion_assist_count", 0),
+			"armors": robot["last_armor_count"],
+			"tracker": robot["last_tracker_state"],
+			"hits": robot["hits"],
+			"shots": robot["shots"],
+		})
+	var text := JSON.stringify(report, "  ")
+	print("=== 3v3 VERIFICATION DUMP ===")
+	print(text)
+	var path := "user://3v3_verify.json"
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f:
+		f.store_string(text)
+		f.close()
+		print("Wrote ", ProjectSettings.globalize_path(path))
+	if config_status_label:
+		config_status_label.text = "Verification dumped (see console / user://3v3_verify.json)"
+
+
+func get_verification_snapshot() -> Dictionary:
+	## Used by automated tests.
+	var robots_out: Array = []
+	for robot in robots:
+		robots_out.append({
+			"id": robot["id"],
+			"team": robot["team"],
+			"results": robot["result_count"],
+			"detections": robot["detection_count"],
+			"controls": robot["control_count"],
+			"fusion_valid": robot.get("fusion_valid_count", 0),
+			"fusion_neighbors_max": robot.get("fusion_neighbor_count_max", 0),
+			"fusion_assist": robot.get("fusion_assist_count", 0),
+			"armors": robot["last_armor_count"],
+			"tracker": robot["last_tracker_state"],
+		})
+	var snap := {
+		"extension_ready": extension_ready,
+		"sim_time": sim_time,
+		"robots": robots_out,
+	}
+	if extension_ready and bridge != null:
+		snap["runtime_stats"] = bridge.get_runtime_stats()
+	return snap
+
+
+
+func _instantiate_chassis_model() -> Node3D:
+	## Always instantiate a fresh PackedScene copy (never mutate a shared template).
+	if ResourceLoader.exists(CHASSIS_MODEL_PATH):
+		var res: Resource = load(CHASSIS_MODEL_PATH)
+		if res is PackedScene:
+			var inst: Node = (res as PackedScene).instantiate()
+			if inst is Node3D:
+				return inst as Node3D
+			if inst != null:
+				var wrap := Node3D.new()
+				wrap.add_child(inst)
+				return wrap
+	# Fallback path (runtime GLTF / cached template)
+	if _chassis_model_template == null:
+		_chassis_model_template = _load_chassis_model_template()
+	if _chassis_model_template == null:
+		return null
+	return _chassis_model_template.duplicate() as Node3D
+
+
+func _load_chassis_model_template() -> Node3D:
+	## Prefer Godot-imported PackedScene; fall back to runtime GLTFDocument.
+	if ResourceLoader.exists(CHASSIS_MODEL_PATH):
+		var res: Resource = load(CHASSIS_MODEL_PATH)
+		if res is PackedScene:
+			var inst := (res as PackedScene).instantiate()
+			if inst is Node3D:
+				print("Chassis model loaded as PackedScene: ", CHASSIS_MODEL_PATH)
+				return inst as Node3D
+			if inst != null:
+				var wrap := Node3D.new()
+				wrap.add_child(inst)
+				print("Chassis model wrapped non-Node3D root")
+				return wrap
+	# Runtime import (works even without editor .import cache).
+	var abs_path := ProjectSettings.globalize_path(CHASSIS_MODEL_PATH)
+	if not FileAccess.file_exists(CHASSIS_MODEL_PATH) and not FileAccess.file_exists(abs_path):
+		push_error("Chassis GLB not found: " + CHASSIS_MODEL_PATH)
+		return null
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	var err := doc.append_from_file(abs_path, state)
+	if err != OK:
+		push_error("GLTFDocument.append_from_file failed (%s): %s" % [str(err), abs_path])
+		return null
+	var generated: Node = doc.generate_scene(state)
+	if generated == null:
+		push_error("GLTFDocument.generate_scene returned null")
+		return null
+	if generated is Node3D:
+		print("Chassis model loaded via GLTFDocument: ", abs_path)
+		return generated as Node3D
+	var holder := Node3D.new()
+	holder.add_child(generated)
+	print("Chassis model runtime-wrapped: ", abs_path)
+	return holder
+
+
+
+func _bind_glb_turret_to_gimbal(visual_root: Node3D, yaw_axis: Node3D, pitch_axis: Node3D) -> bool:
+	## Sketchfab S1 export: node_id6 = upper gun turret, node_id57 = wheeled base.
+	## Reparent turret under pitch_axis so aim commands rotate the real mesh.
+	var turret: Node3D = _find_named_node3d(visual_root, "node_id6")
+	if turret == null:
+		# Some imports rename; fall back to second large child under mm-scale root.
+		turret = _find_turret_fallback(visual_root)
+	if turret == null:
+		return false
+
+	# Place gimbal pivot at current turret world position (base of gun assembly).
+	var turret_gt: Transform3D = turret.global_transform
+	var pivot_world: Vector3 = turret_gt.origin
+	yaw_axis.global_position = Vector3(pivot_world.x, pivot_world.y, pivot_world.z)
+
+	# Reparent preserving world transform.
+	var old_parent: Node = turret.get_parent()
+	if old_parent != null:
+		old_parent.remove_child(turret)
+	pitch_axis.add_child(turret)
+	turret.global_transform = turret_gt
+
+	print("Bound GLB turret '", turret.name, "' under pitch_axis at ", yaw_axis.position)
+	return true
+
+
+func _find_named_node3d(root: Node, exact_name: String) -> Node3D:
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Node3D and n.name == exact_name:
+			return n as Node3D
+	return null
+
+
+func _find_turret_fallback(visual_root: Node3D) -> Node3D:
+	## Find mm-scale node (scale ~0.001) with >=2 children; return the 2nd (turret).
+	var stack: Array = [visual_root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if not (n is Node3D):
+			continue
+		var nd := n as Node3D
+		if nd.get_child_count() < 2:
+			continue
+		var s: Vector3 = nd.scale
+		var is_micro := s.x > 0.0 and s.x < 0.01 and absf(s.x - s.y) < 1e-5
+		if is_micro:
+			var child1 = nd.get_child(1)
+			if child1 is Node3D:
+				return child1 as Node3D
+	return null
+
+
+
+func _gun_forward_in_space(visual_root: Node3D, space: Node3D) -> Vector3:
+	## Direction of ORIGINAL gun (node_id6) in `space` local coordinates.
+	## Gun tip = farthest XZ corner of turret mesh AABB from chassis origin.
+	var turret: Node3D = _find_named_node3d(visual_root, "node_id6")
+	if turret == null:
+		turret = visual_root
+	var aabb: AABB = _compute_node_aabb_global(turret)
+	if aabb.size.length_squared() < 1e-8:
+		return Vector3(0, 0, -1)
+	var inv: Transform3D = space.global_transform.affine_inverse()
+	var best_tip := Vector3.ZERO
+	var best_d := -1.0
+	for ix in range(2):
+		for iy in range(2):
+			for iz in range(2):
+				var cw := Vector3(
+					aabb.position.x + aabb.size.x * float(ix),
+					aabb.position.y + aabb.size.y * float(iy),
+					aabb.position.z + aabb.size.z * float(iz)
+				)
+				var cl: Vector3 = inv * cw
+				cl.y = 0.0
+				var d := cl.length()
+				if d > best_d:
+					best_d = d
+					best_tip = cl
+	if best_d < 1e-5:
+		return Vector3(0, 0, -1)
+	return best_tip.normalized()
+
+
+func _auto_align_mesh_to_original_gun(visual_root: Node3D, body: Node3D) -> float:
+	## Map ORIGINAL GLB gun onto body -Z via mesh yaw=PI.
+	## MUST run with body at neutral yaw during/after align setup.
+	## Same for red and blue. No fake barrel mesh.
+	var saved_yaw := body.rotation.y
+	body.rotation = Vector3(0.0, 0.0, 0.0)
+	body.force_update_transform()
+	var yaw := PI
+	var holder := visual_root.get_node_or_null("ChassisAligned") as Node3D
+	if holder == null:
+		visual_root.rotation.y = yaw
+		body.rotation = Vector3(0.0, saved_yaw, 0.0)
+		body.force_update_transform()
+		print("GUN_ALIGN fallback yaw=", yaw)
+		return yaw
+	holder.rotation = Vector3(0.0, yaw, 0.0)
+	holder.force_update_transform()
+	visual_root.force_update_transform()
+	# Restore body facing (caller may re-face).
+	body.rotation = Vector3(0.0, saved_yaw, 0.0)
+	body.force_update_transform()
+	print("GUN_ALIGN yaw=", yaw, " (original gun -> body -Z @ neutral align)")
+	return yaw
+
+
+
+func _gun_world_dir(robot: Dictionary) -> Vector3:
+	## World direction of original gun barrel (planar). Source of truth for aim/move/fire.
+	var body: Node3D = robot["body"]
+	if robot.has("gun_forward_local"):
+		var local: Vector3 = robot["gun_forward_local"]
+		var w: Vector3 = body.global_transform.basis * local
+		w.y = 0.0
+		if w.length_squared() > 1e-8:
+			return w.normalized()
+	# Fallback: body -Z
+	return _body_forward_dir_raw(robot)
+
+
+func _body_forward_dir_raw(robot: Dictionary) -> Vector3:
+	var d: Vector3 = -robot["body"].global_transform.basis.z
+	d.y = 0.0
+	if d.length_squared() < 1e-8:
+		return Vector3(0, 0, -1)
+	return d.normalized()
+
+
+func _gun_tip_world(robot: Dictionary) -> Vector3:
+	var body: Node3D = robot["body"]
+	if robot.has("gun_tip_local"):
+		return body.global_transform * (robot["gun_tip_local"] as Vector3)
+	var dir := _gun_world_dir(robot)
+	return body.global_position + Vector3(0.0, 0.32, 0.0) + dir * 0.45
+
+
+func _cache_gun_local(robot: Dictionary, visual_root: Node3D) -> void:
+	## After correct neutral align + mesh PI, original gun == body -Z for every team.
+	var body: Node3D = robot["body"]
+	if visual_root != null:
+		var holder := visual_root.get_node_or_null("ChassisAligned") as Node3D
+		if holder != null:
+			holder.rotation = Vector3(0.0, PI, 0.0)
+			holder.force_update_transform()
+	# Always use body -Z: original gun is calibrated to it.
+	robot["gun_forward_local"] = Vector3(0.0, 0.0, -1.0)
+	robot["gun_tip_local"] = Vector3(0.0, 0.30, -0.42)
+	# Verify (at current body yaw) turret follows body.
+	var ok_dot := -9.0
+	if visual_root != null:
+		body.force_update_transform()
+		visual_root.force_update_transform()
+		var turret: Node3D = _find_named_node3d(visual_root, "node_id6")
+		if turret != null:
+			turret.force_update_transform()
+			var gw: Vector3 = -turret.global_transform.basis.z
+			gw.y = 0.0
+			var bf: Vector3 = -body.global_transform.basis.z
+			bf.y = 0.0
+			if gw.length_squared() > 1e-8 and bf.length_squared() > 1e-8:
+				ok_dot = gw.normalized().dot(bf.normalized())
+	robot["_last_align_dot"] = ok_dot
+	print("GUN_CACHE id=", robot.get("id", -1),
+		" gun=body-Z world=", _gun_world_dir(robot),
+		" body_yaw=", body.rotation.y,
+		" turret_align_dot=", ok_dot)
+
+
+
+func _apply_mesh_yaw(visual_root: Node3D, yaw: float) -> void:
+	## Rotate the aligned GLB holder so the original chassis+turret turn as one.
+	## Must run AFTER _align_chassis_model (which resets holder.rotation).
+	var holder := visual_root.get_node_or_null("ChassisAligned") as Node3D
+	if holder == null:
+		# Fallback: yaw the visual root itself
+		visual_root.rotation.y = yaw
+		print("mesh yaw fallback on visual_root y=", yaw)
+		return
+	holder.rotation = Vector3(0.0, yaw, 0.0)
+	print("mesh yaw on ChassisAligned y=", yaw)
+
+
+func _align_chassis_model(model: Node3D, visual_root: Node3D) -> Vector3:
+	## Put chassis geometric bottom-center at visual_root/assembly/body origin,
+	## so mesh, armors and gimbal share one pivot and never desync on move/yaw.
+	model.transform = Transform3D.IDENTITY
+	# Keep FULL model (chassis + turret). node_id6 is the gun turret, not junk.
+	# Only hide mesh islands that are extremely far after import.
+
+	var aabb := _compute_node_aabb_global(model)
+	if aabb.size.length() < 1e-5:
+		push_warning("Chassis AABB empty")
+		return CHASSIS_COLLISION_SIZE
+
+	var horizontal := maxf(aabb.size.x, aabb.size.z)
+	var fit: float = (CHASSIS_TARGET_LENGTH / horizontal) if horizontal > 1e-5 else 1.0
+	fit *= CHASSIS_MODEL_SCALE
+	_chassis_model_scale = fit
+
+	var holder := Node3D.new()
+	holder.name = "ChassisAligned"
+	visual_root.add_child(holder)
+
+	var center: Vector3 = aabb.get_center()
+	var bottom_center := Vector3(center.x, aabb.position.y, center.z)
+
+	# Reparent model under holder, keep current world pose.
+	var model_gt: Transform3D = model.global_transform
+	var old_parent: Node = model.get_parent()
+	if old_parent != null:
+		old_parent.remove_child(model)
+	holder.add_child(model)
+	model.global_transform = model_gt
+
+	# Move holder origin to mesh bottom-center WITHOUT dragging the mesh:
+	# set holder global pos, then restore model world pose.
+	holder.global_position = bottom_center
+	holder.global_rotation = Vector3.ZERO
+	model.global_transform = model_gt
+
+	# Scale about bottom-center pivot (holder origin).
+	holder.scale = Vector3.ONE * fit
+
+	# Snap pivot to visual_root / body origin (assembly center).
+	holder.position = Vector3.ZERO
+	holder.rotation = Vector3.ZERO
+
+	_hide_distant_meshes(holder, CHASSIS_TARGET_LENGTH * 1.6)
+
+	var final_aabb := _compute_node_aabb_global(holder)
+	var size: Vector3 = final_aabb.size
+	if size.x < 0.05 or size.y < 0.05 or size.z < 0.05:
+		size = Vector3(
+			CHASSIS_TARGET_LENGTH * 0.85,
+			CHASSIS_TARGET_LENGTH * 0.45,
+			CHASSIS_TARGET_LENGTH)
+	print("Chassis aligned size=", size, " fit=", fit, " raw_aabb=", aabb.size)
+	return size
+
+
+
+func _compute_node_aabb_global(root: Node) -> AABB:
+	var has_any := false
+	var merged := AABB()
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is VisualInstance3D:
+			var vi := n as VisualInstance3D
+			if not vi.is_visible_in_tree() and vi != root:
+				# still include if just not visible flag
+				pass
+			if not vi.visible:
+				continue
+			var local := vi.get_aabb()
+			if local.size.length() <= 0.0:
+				continue
+			if not vi.is_inside_tree():
+				continue
+			var world_aabb := _xform_aabb(vi.global_transform, local)
+			if not has_any:
+				merged = world_aabb
+				has_any = true
+			else:
+				merged = merged.merge(world_aabb)
+	return merged if has_any else AABB()
+
+
+
+func _hide_distant_meshes(root: Node3D, max_radius: float) -> void:
+	var meshes: Array = []
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is MeshInstance3D:
+			meshes.append(n)
+	var hidden := 0
+	for m in meshes:
+		var mi := m as MeshInstance3D
+		var xf := _relative_transform_to(root, mi)
+		var local_aabb: AABB = mi.get_aabb()
+		var center: Vector3 = xf * local_aabb.get_center()
+		# Ignore vertical; only planar distance from chassis center.
+		var planar := Vector2(center.x, center.z).length()
+		if planar > max_radius:
+			mi.visible = false
+			hidden += 1
+	if hidden > 0:
+		print("Hidden ", hidden, " distant mesh islands on chassis")
+
+
+func _prune_glb_to_single_chassis(model: Node3D) -> void:
+	## Intentionally a no-op: both children under the Sketchfab mm-root are needed
+	## (node_id57 = chassis/wheels, node_id6 = gun turret). Do not strip the turret.
+	pass
+
+
+
+func _compute_node_aabb(root: Node) -> AABB:
+	var has_any := false
+	var merged := AABB()
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is VisualInstance3D:
+			var vi := n as VisualInstance3D
+			var local := vi.get_aabb()
+			if local.size.length() <= 0.0:
+				continue
+			var xf: Transform3D = vi.global_transform if vi.is_inside_tree() else vi.transform
+			# If not in tree yet, accumulate in root-local space via relative xforms.
+			if not vi.is_inside_tree():
+				xf = _relative_transform_to(root, vi)
+			var world_aabb := _xform_aabb(xf, local)
+			if not has_any:
+				merged = world_aabb
+				has_any = true
+			else:
+				merged = merged.merge(world_aabb)
+	return merged if has_any else AABB()
+
+
+func _relative_transform_to(ancestor: Node, node: Node) -> Transform3D:
+	var xf := Transform3D.IDENTITY
+	var cur: Node = node
+	var guard := 0
+	while cur != null and cur != ancestor and guard < 64:
+		if cur is Node3D:
+			xf = (cur as Node3D).transform * xf
+		cur = cur.get_parent()
+		guard += 1
+	return xf
+
+
+func _xform_aabb(xf: Transform3D, aabb: AABB) -> AABB:
+	var corners: Array[Vector3] = [
+		aabb.position,
+		aabb.position + Vector3(aabb.size.x, 0, 0),
+		aabb.position + Vector3(0, aabb.size.y, 0),
+		aabb.position + Vector3(0, 0, aabb.size.z),
+		aabb.position + Vector3(aabb.size.x, aabb.size.y, 0),
+		aabb.position + Vector3(aabb.size.x, 0, aabb.size.z),
+		aabb.position + Vector3(0, aabb.size.y, aabb.size.z),
+		aabb.position + aabb.size,
+	]
+	var out := AABB(xf * corners[0], Vector3.ZERO)
+	for i in range(1, corners.size()):
+		out = out.expand(xf * corners[i])
+	return out
+
+
+func _material(color: Color, roughness: float, emission := Color.BLACK, energy := 0.0) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = roughness
+	if energy > 0.0:
+		material.emission_enabled = true
+		material.emission = emission
+		material.emission_energy_multiplier = energy
+	return material

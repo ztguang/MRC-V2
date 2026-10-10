@@ -1,0 +1,6 @@
+JOBS 224
+RUN W_redfull_run01 attempt=1
+OK W_redfull_run01 rc=0
+RUN W_bluefull_run01 attempt=1
+OK W_bluefull_run01 rc=0
+RUN S_bothoff_run01 attempt=1

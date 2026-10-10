@@ -1,0 +1,16 @@
+{
+  "error": "no METRICS_JSON in log",
+  "log_tail": "im=0\nEVADE id=0 HP 1/5 attacker=3 → (2.478295, 0.056994, -4.306359)\n[2026-07-30 10:07:39.900] [warning] [Tracker] Large dt: 4.013s\n[2026-07-30 10:07:41.151] [warning] [Tracker] Large dt: 4.104s\n[2026-07-30 10:07:43.102] [warning] [Tracker] Large dt: 4.306s\nFIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.22 since_see=0.22 tracker=detecting control=true shoot_flag=true\nHIT robot=4 total_hits=3 victim=0\nEVADE id=0 HP 0/5 attacker=4 → (-4.822871, 0.056994, -6.353979)\nOUT id=0 team=0 (红1) wreck blocks\n[2026-07-30 10:07:48.259] [warning] [Tracker] Large dt: 4.333s\n[2026-07-30 10:07:48.668] [warning] [Tracker] Large dt: 4.339s\n[2026-07-30 10:07:49.844] [warning] [Tracker] Large dt: 4.367s\n[2026-07-30 10:07:54.077] [warning] [Tracker] Large dt: 4.235s\n[2026-07-30 10:08:06.721] [warning] [Tracker] Large dt: 4.391s\n[2026-07-30 10:08:10.423] [warning] [Tracker] Large dt: 3.703s\nFIRE VISION id=1 红2 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\nHIT robot=1 total_hits=1 victim=4\nEVADE id=4 HP 1/5 attacker=1 → (-1.688229, 0.056994, 1.257037)\n[2026-07-30 10:08:18.454] [warning] [Tracker] Large dt: 3.848s\nFIRE VISION id=3 蓝1 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\nHIT robot=3 total_hits=5 victim=1\nEVADE id=1 HP 4/5 attacker=3 → (-1.082175, 0.056993, 4.014293)\n[2026-07-30 10:08:23.882] [warning] [Tracker] Large dt: 4.036s\n[2026-07-30 10:08:24.591] [warning] [Tracker] Large dt: 3.786s\nFIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.5 since_see=0.5 tracker=detecting control=true shoot_flag=true\n[2026-07-30 10:08:28.342] [warning] [Tracker] Large dt: 3.752s\n[2026-07-30 10:08:30.017] [warning] [Tracker] Large dt: 3.738s\nFIRE SENSOR id=1 红2 reason=bore_sight_memory armor=0 age=0.2 since_see=1.4 tracker=lost control=false shoot_flag=false\nHIT robot=1 total_hits=2 victim=4\nEVADE id=4 HP 0/5 attacker=1 → (-1.740209, 0.056994, 0.542528)\nOUT id=4 team=1 (蓝2) wreck blocks\n",
+  "exp_id": "expA",
+  "exp_name": "solo_both",
+  "run_index": 10,
+  "run_id": "expA_solo_both_run10",
+  "log_coop_rescue": 0,
+  "log_fire_coop_focus": 0,
+  "log_fire_coop_rescue": 0,
+  "log_fire_coop_shared": 0,
+  "log_fire_vision": 29,
+  "log_fire_sensor": 3,
+  "log_out_count": 3,
+  "log_hit_count": 21
+}

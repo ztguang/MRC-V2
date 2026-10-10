@@ -1,0 +1,20 @@
+# Build environment matching the existing Linux binaries (Ubuntu 22.04 + OpenVINO + OpenCV).
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake ninja-build pkg-config git curl ca-certificates wget unzip \
+    libopencv-dev libeigen3-dev libfmt-dev libspdlog-dev libyaml-cpp-dev \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# OpenVINO 2024.6 runtime (matches prebundled libopenvino.so.2460)
+ARG OV_URL=https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/linux/l_openvino_toolkit_ubuntu22_2024.6.0.17404.4c0f47d2335_x86_64.tgz
+RUN mkdir -p /opt && cd /tmp \
+    && wget -q -O ov.tgz "$OV_URL" \
+    && tar -xzf ov.tgz -C /opt \
+    && ln -s /opt/l_openvino_toolkit_ubuntu22_2024.6.0.17404.4c0f47d2335_x86_64 /opt/openvino \
+    && rm -f ov.tgz
+
+ENV OpenVINO_DIR=/opt/openvino/runtime/cmake
+WORKDIR /work

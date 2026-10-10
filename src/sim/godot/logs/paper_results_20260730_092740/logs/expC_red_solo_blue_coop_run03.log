@@ -1,0 +1,182 @@
+[run_godot_nvidia] SIM_COOP_RED=solo  SIM_COOP_BLUE=coop  (solo=无协同, coop=有协同)
+[run_godot_nvidia] DISPLAY=:1.0
+[run_godot_nvidia] OpenGL vendor:   NVIDIA Corporation
+[run_godot_nvidia] OpenGL renderer: NVIDIA GeForce RTX 3060/PCIe/SSE2
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 580.95.05 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 3060
+
+TEAM_COOP per-team  red=SOLO  blue=COOP
+========================================
+SIM RULE: red=SOLO  blue=COOP
+  (SIM_COOP_RED/BLUE | --coop-red= --coop-blue= | red solo blue coop)
+========================================
+Boundary walls: 4 sides @ ±7.5m
+Obstacles: 53 blocks
+Chassis aligned size=(0.469731, 0.614774, 0.599999) fit=2.22182998988224 raw_aabb=(0.211416, 0.276697, 0.270048)
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+MUZZLE_ALIGN id=0 team=0 mesh_yaw=3.14159265358979
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+FACE_VERIFY team=0 yaw=-0.3217505812645 fwd_z=-0.94868332147598 expect_enemy_z=-5.0 aligned=true
+FINAL FACE id=0 team=0 body_yaw=-0.3217505812645 holder_y=3.14159274101257 gun_local=(0.297911, 0.0, -0.954594) shell_dir=(0.316228, 0.0, -0.948683) expect_z=-1.0 mesh_yaw=3.14159265358979
+Chassis aligned size=(0.469731, 0.614774, 0.599999) fit=2.22182998988224 raw_aabb=(0.211416, 0.276697, 0.270048)
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+MUZZLE_ALIGN id=1 team=0 mesh_yaw=3.14159265358979
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+FACE_VERIFY team=0 yaw=0.05549850687385 fwd_z=-0.99846035242081 expect_enemy_z=-5.0 aligned=true
+FINAL FACE id=1 team=0 body_yaw=0.05549850687385 holder_y=3.14159274101257 gun_local=(-0.074676, 0.0, -0.997208) shell_dir=(-0.05547, 0.0, -0.99846) expect_z=-1.0 mesh_yaw=3.14159265358979
+Chassis aligned size=(0.469731, 0.614774, 0.599999) fit=2.22182998988224 raw_aabb=(0.211416, 0.276697, 0.270048)
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+MUZZLE_ALIGN id=2 team=0 mesh_yaw=3.14159265358979
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+FACE_VERIFY team=0 yaw=0.31234642863274 fwd_z=-0.95161515474319 expect_enemy_z=-5.0 aligned=true
+FINAL FACE id=2 team=0 body_yaw=0.31234642863274 holder_y=3.14159274101257 gun_local=(-0.32555, 0.0, -0.945525) shell_dir=(-0.307292, 0.0, -0.951615) expect_z=-1.0 mesh_yaw=3.14159265358979
+Chassis aligned size=(0.469731, 0.614774, 0.599999) fit=2.22182998988224 raw_aabb=(0.211416, 0.276697, 0.270048)
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+MUZZLE_ALIGN id=3 team=1 mesh_yaw=3.14159265358979
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+FACE_VERIFY team=1 yaw=-2.93312740325928 fwd_z=0.97834968566895 expect_enemy_z=5.0 aligned=true
+FINAL FACE id=3 team=1 body_yaw=-2.93312740325928 holder_y=3.14159274101257 gun_local=(0.22575, 0.0, 0.974185) shell_dir=(0.206959, 0.0, 0.97835) expect_z=1.0 mesh_yaw=3.14159265358979
+Chassis aligned size=(0.46973, 0.614774, 0.599999) fit=2.22182998988224 raw_aabb=(0.211416, 0.276697, 0.270048)
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+MUZZLE_ALIGN id=4 team=1 mesh_yaw=3.14159265358979
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+FACE_VERIFY team=1 yaw=3.01102662086487 fwd_z=0.99148839712143 expect_enemy_z=5.0 aligned=true
+FINAL FACE id=4 team=1 body_yaw=3.01102662086487 holder_y=3.14159274101257 gun_local=(-0.111089, 0.0, 0.99381) shell_dir=(-0.130195, 0.0, 0.991488) expect_z=1.0 mesh_yaw=3.14159265358979
+Chassis aligned size=(0.469731, 0.614774, 0.599999) fit=2.22182998988224 raw_aabb=(0.211416, 0.276697, 0.270048)
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+MUZZLE_ALIGN id=5 team=1 mesh_yaw=3.14159265358979
+GUN_ALIGN yaw=3.14159265358979 (original gun -> body -Z @ neutral align)
+FACE_VERIFY team=1 yaw=2.80034589767456 fwd_z=0.94233816862106 expect_enemy_z=5.0 aligned=true
+FINAL FACE id=5 team=1 body_yaw=2.80034589767456 holder_y=3.14159274101257 gun_local=(-0.316464, 0.0, 0.948604) shell_dir=(-0.334662, 0.0, 0.942338) expect_z=1.0 mesh_yaw=3.14159265358979
+GUN_CACHE id=0 gun=body-Z world=(0.316228, 0.0, -0.948683) body_yaw=-0.3217505812645 turret_align_dot=0.99981486797333
+FACE_VERIFY team=0 yaw=-0.3217505812645 fwd_z=-0.94868332147598 expect_enemy_z=-5.0 aligned=true
+GUN_READY id=0 team=0 gun_world=(0.316228, 0.0, -0.948683) turret_dir=(0.297911, 0.0, -0.954594) turret_off=(0.000637, 0.207579, 0.002197) body_yaw=-0.3217505812645 align_dot=0.99981486797333
+GUN_CACHE id=1 gun=body-Z world=(-0.05547, 0.0, -0.99846) body_yaw=0.05549850687385 turret_align_dot=0.99981474876404
+FACE_VERIFY team=0 yaw=0.05549850687385 fwd_z=-0.99846035242081 expect_enemy_z=-5.0 aligned=true
+GUN_READY id=1 team=0 gun_world=(-0.05547, 0.0, -0.99846) turret_dir=(-0.074676, 0.0, -0.997208) turret_off=(0.001402, 0.207579, 0.001808) body_yaw=0.05549850687385 align_dot=0.99981474876404
+GUN_CACHE id=2 gun=body-Z world=(-0.307292, 0.0, -0.951615) body_yaw=0.31234642863274 turret_align_dot=0.99981480836868
+FACE_VERIFY team=0 yaw=0.31234642863274 fwd_z=-0.95161515474319 expect_enemy_z=-5.0 aligned=true
+GUN_READY id=2 team=0 gun_world=(-0.307292, 0.0, -0.951615) turret_dir=(-0.32555, 0.0, -0.945525) turret_off=(0.001815, 0.207579, 0.001393) body_yaw=0.31234642863274 align_dot=0.99981480836868
+GUN_CACHE id=3 gun=body-Z world=(0.206959, 0.0, 0.97835) body_yaw=-2.93312740325928 turret_align_dot=0.99981480836868
+FACE_VERIFY team=1 yaw=-2.93312740325928 fwd_z=0.97834968566895 expect_enemy_z=5.0 aligned=true
+GUN_READY id=3 team=1 gun_world=(0.206959, 0.0, 0.97835) turret_dir=(0.22575, 0.0, 0.974185) turret_off=(-0.00166, 0.207579, -0.001574) body_yaw=-2.93312740325928 align_dot=0.99981480836868
+GUN_CACHE id=4 gun=body-Z world=(-0.130195, 0.0, 0.991488) body_yaw=3.01102662086487 turret_align_dot=0.99981486797333
+FACE_VERIFY team=1 yaw=3.01102662086487 fwd_z=0.99148839712143 expect_enemy_z=5.0 aligned=true
+GUN_READY id=4 team=1 gun_world=(-0.130195, 0.0, 0.991488) turret_dir=(-0.111089, 0.0, 0.99381) turret_off=(-0.001043, 0.207579, -0.002036) body_yaw=3.01102662086487 align_dot=0.99981486797333
+GUN_CACHE id=5 gun=body-Z world=(-0.334662, 0.0, 0.942338) body_yaw=2.80034589767456 turret_align_dot=0.99981474876404
+FACE_VERIFY team=1 yaw=2.80034589767456 fwd_z=0.94233816862106 expect_enemy_z=5.0 aligned=true
+GUN_READY id=5 team=1 gun_world=(-0.334662, 0.0, 0.942338) turret_dir=(-0.316464, 0.0, 0.948604) turret_off=(-0.000594, 0.207579, -0.002208) body_yaw=2.80034589767456 align_dot=0.99981474876404
+3v3 camera: 320x240 @ 1.0 Hz/robot FOV 50.0 muzzle 10.0
+SIM FEEL: muzzle=10.0 vision=(320, 240) @1.0Hz (queue-backed)
+AutoAimBridge 3v3: OpenVINO CPU auto-aim worker ready (multi-robot) max_robots=16
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+FIRE VISION id=5 蓝3 reason=vision_shoot armor=1 age=0.02 since_see=0.0 tracker=detecting control=true shoot_flag=true
+FIRE SENSOR id=4 蓝2 reason=coop_focus_fire armor=0 age=0.93 since_see=0.0 tracker=lost control=false shoot_flag=false
+[2026-07-30 10:46:15.426] [warning] [Tracker] Large dt: 5.072s
+FIRE SENSOR id=3 蓝1 reason=coop_focus_fire armor=0 age=0.53 since_see=0.17 tracker=lost control=false shoot_flag=false
+HIT robot=3 total_hits=1 victim=2
+EVADE id=2 HP 4/5 attacker=3 → (4.79932, 0.056993, -3.422871)
+FIRE SENSOR id=5 蓝3 reason=coop_focus_fire armor=0 age=0.95 since_see=0.22 tracker=lost control=false shoot_flag=false
+FIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.2 since_see=0.0 tracker=detecting control=true shoot_flag=true
+FIRE SENSOR id=3 蓝1 reason=coop_focus_fire armor=0 age=1.15 since_see=0.0 tracker=lost control=false shoot_flag=false
+HIT robot=3 total_hits=2 victim=2
+EVADE id=2 HP 3/5 attacker=3 → (0.432689, 0.056993, -2.38137)
+[2026-07-30 10:46:25.309] [warning] [Tracker] Large dt: 5.216s
+[2026-07-30 10:46:25.731] [warning] [Tracker] Large dt: 5.160s
+FIRE VISION id=5 蓝3 reason=vision_shoot armor=1 age=0.13 since_see=0.0 tracker=detecting control=true shoot_flag=true
+HIT robot=5 total_hits=1 victim=2
+EVADE id=2 HP 2/5 attacker=5 → (0.322683, 0.056993, -1.677263)
+[2026-07-30 10:46:28.768] [warning] [Tracker] Large dt: 5.395s
+[2026-07-30 10:46:30.512] [warning] [Tracker] Large dt: 4.784s
+FIRE SENSOR id=3 蓝1 reason=coop_focus_fire armor=0 age=0.5 since_see=0.0 tracker=lost control=false shoot_flag=false
+R1_VISION_SAVE #0 tag=aim_fov extra=truth_in_view user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_00_aim_fov_t6.5.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_00_aim_fov_t6.5.png err=0/0 size=320x240
+HIT robot=3 total_hits=3 victim=2
+EVADE id=2 HP 1/5 attacker=3 → (6.7, 0.056993, -2.860569)
+R1_VISION_SAVE #1 tag=detect extra=armor=1 tracker=detecting user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_01_detect_t6.7.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_01_detect_t6.7.png err=0/0 size=320x240
+R1_VISION_SAVE #2 tag=fire_vision extra=vision_shoot user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_02_fire_vision_t6.7.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_02_fire_vision_t6.7.png err=0/0 size=320x240
+FIRE VISION id=0 红1 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true
+HIT robot=0 total_hits=1 victim=4
+EVADE id=4 HP 4/5 attacker=0 → (-4.422656, 0.056993, 1.888098)
+COOP RESCUE team=1 victim=4 → focus attacker=0 (一方有难八方支援)
+FIRE VISION id=5 蓝3 reason=vision_shoot armor=1 age=0.55 since_see=0.0 tracker=detecting control=true shoot_flag=true
+HIT robot=5 total_hits=2 victim=2
+EVADE id=2 HP 0/5 attacker=5 → (6.7, 0.056993, -1.10531)
+OUT id=2 team=0 (红3) wreck blocks
+[2026-07-30 10:46:33.638] [warning] [Tracker] Large dt: 4.872s
+[2026-07-30 10:46:35.664] [warning] [Tracker] Large dt: 5.150s
+[2026-07-30 10:46:36.753] [warning] [Tracker] Large dt: 5.107s
+[2026-07-30 10:46:38.274] [warning] [Tracker] Large dt: 4.643s
+FIRE SENSOR id=3 蓝1 reason=coop_rescue_fire armor=0 age=1.18 since_see=0.07 tracker=lost control=false shoot_flag=false
+FIRE SENSOR id=4 蓝2 reason=coop_rescue_fire armor=0 age=0.3 since_see=0.25 tracker=lost control=false shoot_flag=false
+HIT robot=3 total_hits=4 victim=0
+EVADE id=0 HP 4/5 attacker=3 → (4.409108, 0.056994, 1.873236)
+R1_VISION_SAVE #3 tag=aim_fov extra=truth_in_view user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_03_aim_fov_t10.1.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_03_aim_fov_t10.1.png err=0/0 size=320x240
+R1_VISION_SAVE #4 tag=detect extra=armor=1 tracker=detecting user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_04_detect_t10.3.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_04_detect_t10.3.png err=0/0 size=320x240
+[2026-07-30 10:46:50.719] [warning] [Tracker] Large dt: 4.525s
+FIRE VISION id=1 红2 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true
+[2026-07-30 10:46:52.227] [warning] [Tracker] Large dt: 4.073s
+[2026-07-30 10:46:55.450] [warning] [Tracker] Large dt: 4.338s
+[2026-07-30 10:46:56.260] [warning] [Tracker] Large dt: 4.027s
+FIRE SENSOR id=4 蓝2 reason=coop_focus_fire armor=0 age=0.92 since_see=0.3 tracker=lost control=false shoot_flag=false
+HIT robot=4 total_hits=1 victim=0
+EVADE id=0 HP 3/5 attacker=4 → (-5.00123, 0.056994, 3.033485)
+[2026-07-30 10:47:00.917] [warning] [Tracker] Large dt: 4.664s
+[2026-07-30 10:47:02.475] [warning] [Tracker] Large dt: 4.635s
+FIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.17 since_see=0.0 tracker=detecting control=true shoot_flag=true
+HIT robot=4 total_hits=2 victim=0
+EVADE id=0 HP 2/5 attacker=4 → (-3.05952, 0.056994, 1.001918)
+[2026-07-30 10:47:05.233] [warning] [Tracker] Large dt: 4.322s
+[2026-07-30 10:47:06.764] [warning] [Tracker] Large dt: 4.289s
+R1_VISION_SAVE #5 tag=aim_fov extra=truth_in_view user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_05_aim_fov_t16.1.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_05_aim_fov_t16.1.png err=0/0 size=320x240
+R1_VISION_SAVE #6 tag=detect extra=armor=1 tracker=detecting user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_06_detect_t16.3.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_06_detect_t16.3.png err=0/0 size=320x240
+FIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.63 since_see=0.0 tracker=detecting control=true shoot_flag=true
+[2026-07-30 10:47:09.976] [warning] [Tracker] Large dt: 4.737s
+[2026-07-30 10:47:11.232] [warning] [Tracker] Large dt: 4.477s
+[2026-07-30 10:47:12.443] [warning] [Tracker] Large dt: 4.425s
+[2026-07-30 10:47:12.890] [warning] [Tracker] Large dt: 4.392s
+FIRE VISION id=1 红2 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true
+HIT robot=1 total_hits=1 victim=4
+EVADE id=4 HP 3/5 attacker=1 → (-3.404238, 0.056993, 5.926591)
+COOP RESCUE team=1 victim=4 → focus attacker=1 (一方有难八方支援)
+[2026-07-30 10:47:14.393] [warning] [Tracker] Large dt: 4.407s
+FIRE SENSOR id=3 蓝1 reason=coop_rescue_fire armor=0 age=0.08 since_see=0.08 tracker=lost control=false shoot_flag=false
+HIT robot=3 total_hits=5 victim=1
+EVADE id=1 HP 4/5 attacker=3 → (3.286373, 0.056993, 5.20644)
+[2026-07-30 10:47:18.291] [warning] [Tracker] Large dt: 5.399s
+FIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.75 since_see=0.0 tracker=detecting control=true shoot_flag=true
+[2026-07-30 10:47:19.417] [warning] [Tracker] Large dt: 5.027s
+HIT robot=4 total_hits=3 victim=1
+EVADE id=1 HP 3/5 attacker=4 → (-0.021862, 0.056993, 6.7)
+[2026-07-30 10:47:21.050] [warning] [Tracker] Large dt: 5.043s
+FIRE VISION id=3 蓝1 reason=vision_shoot armor=1 age=0.35 since_see=0.0 tracker=detecting control=true shoot_flag=true
+HIT robot=3 total_hits=6 victim=1
+EVADE id=1 HP 2/5 attacker=3 → (-2.07273, 0.056993, 0.343563)
+[2026-07-30 10:47:24.118] [warning] [Tracker] Large dt: 4.712s
+[2026-07-30 10:47:24.581] [warning] [Tracker] Large dt: 4.384s
+FIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=1.0 since_see=0.0 tracker=fusion_fused/1nb control=true shoot_flag=true
+HIT robot=4 total_hits=4 victim=1
+EVADE id=1 HP 1/5 attacker=4 → (-2.553179, 0.056993, 4.22481)
+[2026-07-30 10:47:25.778] [warning] [Tracker] Large dt: 4.724s
+FIRE VISION id=3 蓝1 reason=vision_shoot armor=1 age=0.62 since_see=0.0 tracker=detecting control=true shoot_flag=true
+HIT robot=3 total_hits=7 victim=1
+EVADE id=1 HP 0/5 attacker=3 → (4.353954, 0.056993, 3.219237)
+OUT id=1 team=0 (红2) wreck blocks
+[2026-07-30 10:47:27.742] [warning] [Tracker] Large dt: 4.425s
+[2026-07-30 10:47:28.627] [warning] [Tracker] Large dt: 4.514s
+[2026-07-30 10:47:29.056] [warning] [Tracker] Large dt: 4.465s
+[2026-07-30 10:47:30.245] [warning] [Tracker] Large dt: 4.478s
+FIRE SENSOR id=4 蓝2 reason=coop_focus_fire armor=0 age=0.23 since_see=0.23 tracker=lost control=false shoot_flag=false
+HIT robot=4 total_hits=5 victim=0
+EVADE id=0 HP 1/5 attacker=4 → (-1.071475, 0.056994, 1.093587)
+[2026-07-30 10:47:32.161] [warning] [Tracker] Large dt: 4.415s
+R1_VISION_SAVE #7 tag=aim_fov extra=truth_in_view user=/root/.local/share/godot/app_userdata/SP Vision RoboMaster Simulator/vision_r1/r1_07_aim_fov_t23.3.png res=/root/lunwen/sim/godot/imgs/vision_r1/r1_07_aim_fov_t23.3.png err=0/0 size=320x240
+FIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.68 since_see=0.0 tracker=detecting control=true shoot_flag=true
+HIT robot=4 total_hits=6 victim=0
+EVADE id=0 HP 0/5 attacker=4 → (1.125491, 0.056994, 2.037338)
+OUT id=0 team=0 (红1) wreck blocks
+MATCH OVER: 蓝队胜利！红方全灭
+METRICS_JSON {"alive_advantage_red_minus_blue":-3,"blue_accuracy_pct":71.4,"blue_alive":3,"blue_hits":15,"blue_shots":21,"control_sum":47,"coop_side":"blue","coop_side_won":true,"detection_sum":35,"exp_id":"expC","exp_name":"red_solo_blue_coop","fusion_assist_sum":10,"fusion_neighbors_max_sum":3,"fusion_valid_sum":21,"hit_advantage_red_minus_blue":-13,"match_time_limit":180.0,"mode_blue":"coop","mode_red":"solo","overall_accuracy_pct":70.8,"reason":"end","red_accuracy_pct":66.7,"red_alive":0,"red_hits":2,"red_shots":3,"rescue_events":2,"result_text":"蓝队胜利！红方全灭","robots":[{"ai_role":0,"alive":false,"control":5,"coop":false,"detection":4,"fusion_assist":0,"fusion_neighbors_max":0,"fusion_valid":0,"hit_taken":5,"hits":1,"hp_remaining":0,"id":0,"number":1,"shots":1,"team":0,"team_name":"red"},{"ai_role":1,"alive":false,"control":8,"coop":false,"detection":5,"fusion_assist":0,"fusion_neighbors_max":0,"fusion_valid":0,"hit_taken":5,"hits":1,"hp_remaining":0,"id":1,"number":2,"shots":2,"team":0,"team_name":"red"},{"ai_role":2,"alive":false,"control":13,"coop":false,"detection":12,"fusion_assist":0,"fusion_neighbors_max":0,"fusion_valid":0,"hit_taken":5,"hits":0,"hp_remaining":0,"id":2,"number":3,"shots":0,"team":0,"team_name":"red"},{"ai_role":0,"alive":true,"control":2,"coop":true,"detection":2,"fusion_assist":0,"fusion_neighbors_max":0,"fusion_valid":2,"hit_taken":0,"hits":7,"hp_remaining":5,"id":3,"number":1,"shots":7,"team":1,"team_name":"blue"},{"ai_role":1,"alive":true,"control":8,"coop":true,"detection":8,"fusion_assist":2,"fusion_neighbors_max":1,"fusion_valid":8,"hit_taken":2,"hits":6,"hp_remaining":3,"id":4,"number":2,"shots":10,"team":1,"team_name":"blue"},{"ai_role":2,"alive":true,"control":11,"coop":true,"detection":4,"fusion_assist":8,"fusion_neighbors_max":2,"fusion_valid":11,"hit_taken":0,"hits":2,"hp_remaining":5,"id":5,"number":3,"shots":4,"team":1,"team_name":"blue"}],"run_id":"expC_red_solo_blue_coop_run03","run_index":3,"schema_version":2,"sim_time":23.78,"timestamp":"2026-07-30T02:47:37","total_hits":17,"total_shots":24,"winner":"blue","winner_team":1}
+METRICS_SUMMARY mode=RS/BC winner=blue t=23.8 hits=2:15 shots=3:21 acc=66.7:71.4 alive=0:3 rescue=2 fusionA=10
+METRICS_FILE /root/lunwen/sim/godot/logs/paper_results_20260730_092740/expC_red_solo_blue_coop/expC_red_solo_blue_coop_run03.json
+METRICS_JSONL /root/lunwen/sim/godot/logs/match_metrics.jsonl
+SIM_AUTO_QUIT

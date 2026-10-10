@@ -1,0 +1,27 @@
+{
+  "results_dir": "/root/lunwen/sim/godot/logs/paper_results_20260730_122316",
+  "n": {
+    "A": 9,
+    "B": 9,
+    "C": 10,
+    "D": 10
+  },
+  "A_wins": {
+    "red": 3,
+    "blue": 6
+  },
+  "B_wins": {
+    "red": 5,
+    "blue": 4
+  },
+  "C_coop_win_rate": 1.0,
+  "D_coop_win_rate": 1.0,
+  "A_sim_time_mean": 60.044444444444444,
+  "B_sim_time_mean": 43.824444444444445,
+  "A_acc_mean": 75.1888888888889,
+  "B_acc_mean": 49.25555555555555,
+  "A_fusion_assist_mean": 0.0,
+  "B_fusion_assist_mean": 31.444444444444443,
+  "C_sim_time_mean": 33.95,
+  "D_sim_time_mean": 33.051
+}

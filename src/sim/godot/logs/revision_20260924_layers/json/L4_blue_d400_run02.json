@@ -1,0 +1,552 @@
+{
+	"age_ema_blue": 1.47,
+	"age_ema_red": 2.43,
+	"aim_err_mean_deg": 14.2,
+	"aim_err_n": 134,
+	"alive_advantage_red_minus_blue": -1,
+	"all_tracked_t_blue": 15.22,
+	"all_tracked_t_red": -1.0,
+	"alpha": 0.5,
+	"assist_blue": 25,
+	"assist_red": 109,
+	"beta": 0.3,
+	"blue_accuracy_pct": 68.4,
+	"blue_alive": 2,
+	"blue_hits": 13,
+	"blue_shots": 19,
+	"calib_blue": 1,
+	"calib_red": 0,
+	"cam_h": 240,
+	"cam_w": 320,
+	"capture_scale_blue": 1.08,
+	"capture_scale_red": 1.0,
+	"control_sum": 1,
+	"coop_side": "none",
+	"coop_side_won": false,
+	"d_ref": 5.0,
+	"delay_ms": 400.0,
+	"detection_sum": 1,
+	"dropped": 0,
+	"exp_id": "L4",
+	"exp_name": "blue_d400",
+	"extra_ms": 0,
+	"focus_blue": 1,
+	"focus_fire_blue": 19,
+	"focus_fire_red": 18,
+	"focus_red": 1,
+	"formation_blue": 1,
+	"formation_red": 1,
+	"formation_scale_blue": 0.61,
+	"formation_scale_red": 0.45,
+	"fov_scale": 1.0,
+	"fusion_assist_sum": 0,
+	"fusion_blue": 1,
+	"fusion_mode_blue": "proposed",
+	"fusion_mode_red": "proposed",
+	"fusion_neighbors_max_sum": 0,
+	"fusion_out_n": 134,
+	"fusion_red": 1,
+	"fusion_valid_sum": 0,
+	"gamma": 0.2,
+	"gate_blue": 1,
+	"gate_red": 1,
+	"ghost_n": 9,
+	"ghost_rate": 0.067,
+	"hit_advantage_red_minus_blue": -7,
+	"lambda": 1.0,
+	"lambda_eff_blue": 2.67,
+	"lambda_eff_red": 1.0,
+	"loss": 0.0,
+	"match_time_limit": 180.0,
+	"mode_blue": "solo",
+	"mode_red": "solo",
+	"overall_accuracy_pct": 51.4,
+	"pos_err_mean_m": 0.484,
+	"pos_err_n": 134,
+	"proc_ema_ms": 29.63,
+	"process_ms_p50": 30.32,
+	"process_ms_p95": 31.58,
+	"protocol": 1,
+	"queue_ema": 0.0,
+	"queue_p95": 0.0,
+	"r_gate": 1.5,
+	"reason": "end",
+	"red_accuracy_pct": 33.3,
+	"red_alive": 1,
+	"red_hits": 6,
+	"red_shots": 18,
+	"rescue_blue": 1,
+	"rescue_events": 0,
+	"rescue_events_blue": 6,
+	"rescue_events_red": 13,
+	"rescue_red": 1,
+	"result_text": "蓝队胜利！时限到 命中 6:13",
+	"robots": [
+		{
+			"ai_role": 0,
+			"alive": true,
+			"control": 0,
+			"coop": false,
+			"detection": 0,
+			"fusion_assist": 0,
+			"fusion_neighbors_max": 0,
+			"fusion_valid": 0,
+			"hit_taken": 3,
+			"hits": 2,
+			"hp_remaining": 2,
+			"id": 0,
+			"number": 1,
+			"shots": 8,
+			"team": 0,
+			"team_name": "red"
+		},
+		{
+			"ai_role": 1,
+			"alive": false,
+			"control": 1,
+			"coop": false,
+			"detection": 1,
+			"fusion_assist": 0,
+			"fusion_neighbors_max": 0,
+			"fusion_valid": 0,
+			"hit_taken": 5,
+			"hits": 2,
+			"hp_remaining": 0,
+			"id": 1,
+			"number": 2,
+			"shots": 3,
+			"team": 0,
+			"team_name": "red"
+		},
+		{
+			"ai_role": 2,
+			"alive": false,
+			"control": 0,
+			"coop": false,
+			"detection": 0,
+			"fusion_assist": 0,
+			"fusion_neighbors_max": 0,
+			"fusion_valid": 0,
+			"hit_taken": 5,
+			"hits": 2,
+			"hp_remaining": 0,
+			"id": 2,
+			"number": 3,
+			"shots": 7,
+			"team": 0,
+			"team_name": "red"
+		},
+		{
+			"ai_role": 0,
+			"alive": false,
+			"control": 0,
+			"coop": false,
+			"detection": 0,
+			"fusion_assist": 0,
+			"fusion_neighbors_max": 0,
+			"fusion_valid": 0,
+			"hit_taken": 5,
+			"hits": 3,
+			"hp_remaining": 0,
+			"id": 3,
+			"number": 1,
+			"shots": 4,
+			"team": 1,
+			"team_name": "blue"
+		},
+		{
+			"ai_role": 1,
+			"alive": true,
+			"control": 0,
+			"coop": false,
+			"detection": 0,
+			"fusion_assist": 0,
+			"fusion_neighbors_max": 0,
+			"fusion_valid": 0,
+			"hit_taken": 1,
+			"hits": 8,
+			"hp_remaining": 4,
+			"id": 4,
+			"number": 2,
+			"shots": 11,
+			"team": 1,
+			"team_name": "blue"
+		},
+		{
+			"ai_role": 2,
+			"alive": true,
+			"control": 0,
+			"coop": false,
+			"detection": 0,
+			"fusion_assist": 0,
+			"fusion_neighbors_max": 0,
+			"fusion_valid": 0,
+			"hit_taken": 0,
+			"hits": 2,
+			"hp_remaining": 5,
+			"id": 5,
+			"number": 3,
+			"shots": 4,
+			"team": 1,
+			"team_name": "blue"
+		}
+	],
+	"run_id": "L4_blue_d400_run02",
+	"run_index": 2,
+	"samples": [
+		{
+			"enemies": [
+				{
+					"x": -0.45,
+					"y": 0.06,
+					"z": 1.36
+				},
+				{
+					"x": -0.68,
+					"y": 0.06,
+					"z": -2.6
+				},
+				{
+					"x": -0.09,
+					"y": 0.06,
+					"z": -2.16
+				}
+			],
+			"obs": [
+				{
+					"age": 1.22,
+					"c": 0.07,
+					"x": 0.57,
+					"y": 0.12,
+					"z": 2.38
+				}
+			],
+			"t": 9.1,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": -0.92,
+					"y": 0.06,
+					"z": 1.56
+				},
+				{
+					"x": -1.54,
+					"y": 0.06,
+					"z": 1.51
+				},
+				{
+					"x": 1.66,
+					"y": 0.06,
+					"z": -1.3
+				}
+			],
+			"obs": [
+				{
+					"age": 2.37,
+					"c": 0.95,
+					"x": -0.43,
+					"y": 0.06,
+					"z": 1.47
+				}
+			],
+			"t": 15.1,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": -0.72,
+					"y": 0.06,
+					"z": 3.13
+				},
+				{
+					"x": -0.39,
+					"y": 0.06,
+					"z": 2.44
+				},
+				{
+					"x": 3.0,
+					"y": 0.06,
+					"z": 1.68
+				}
+			],
+			"obs": [
+				{
+					"age": 0.15,
+					"c": 0.95,
+					"x": 3.02,
+					"y": 0.06,
+					"z": 1.46
+				}
+			],
+			"t": 15.1,
+			"team": 1
+		},
+		{
+			"enemies": [
+				{
+					"x": -0.06,
+					"y": 0.06,
+					"z": 1.13
+				},
+				{
+					"x": -0.69,
+					"y": 0.06,
+					"z": 1.34
+				},
+				{
+					"x": 1.69,
+					"y": 0.06,
+					"z": -1.01
+				}
+			],
+			"obs": [
+				{
+					"age": 0.03,
+					"c": 0.95,
+					"x": -0.07,
+					"y": 0.06,
+					"z": 1.13
+				}
+			],
+			"t": 18.1,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": -0.02,
+					"y": 0.06,
+					"z": 1.13
+				},
+				{
+					"x": -1.28,
+					"y": 0.06,
+					"z": 1.41
+				},
+				{
+					"x": 1.33,
+					"y": 0.06,
+					"z": -0.65
+				}
+			],
+			"obs": [
+				{
+					"age": 2.48,
+					"c": 0.95,
+					"x": -0.62,
+					"y": 0.06,
+					"z": 1.47
+				}
+			],
+			"t": 21.1,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": -1.33,
+					"y": 0.06,
+					"z": 3.2
+				},
+				{
+					"x": 2.61,
+					"y": 0.06,
+					"z": 0.5
+				}
+			],
+			"obs": [
+				{
+					"age": 0.58,
+					"c": 0.95,
+					"x": 2.58,
+					"y": 0.06,
+					"z": 1.14
+				}
+			],
+			"t": 24.1,
+			"team": 1
+		},
+		{
+			"enemies": [
+				{
+					"x": 1.28,
+					"y": 0.06,
+					"z": 1.92
+				},
+				{
+					"x": 1.21,
+					"y": 0.06,
+					"z": -1.37
+				}
+			],
+			"obs": [
+				{
+					"age": 1.38,
+					"c": 0.95,
+					"x": 0.99,
+					"y": 0.06,
+					"z": -1.13
+				}
+			],
+			"t": 33.1,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": 1.18,
+					"y": 0.06,
+					"z": 1.1
+				},
+				{
+					"x": 1.36,
+					"y": 0.06,
+					"z": -0.8
+				}
+			],
+			"obs": [
+				{
+					"age": 1.68,
+					"c": 0.95,
+					"x": 1.25,
+					"y": 0.06,
+					"z": -1.07
+				}
+			],
+			"t": 42.2,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": 1.2,
+					"y": 0.06,
+					"z": 1.08
+				},
+				{
+					"x": 3.25,
+					"y": 0.06,
+					"z": -2.81
+				}
+			],
+			"obs": [
+				{
+					"age": 1.4,
+					"c": 0.95,
+					"x": 1.08,
+					"y": 0.06,
+					"z": 1.17
+				}
+			],
+			"t": 57.3,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": 1.84,
+					"y": 0.06,
+					"z": 1.96
+				},
+				{
+					"x": 0.56,
+					"y": 0.06,
+					"z": -1.45
+				}
+			],
+			"obs": [
+				{
+					"age": 1.88,
+					"c": 0.95,
+					"x": 1.21,
+					"y": 0.06,
+					"z": 1.72
+				}
+			],
+			"t": 90.5,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": 1.35,
+					"y": 0.06,
+					"z": 1.92
+				},
+				{
+					"x": -0.63,
+					"y": 0.06,
+					"z": -3.87
+				}
+			],
+			"obs": [
+				{
+					"age": 0.05,
+					"c": 0.95,
+					"x": 1.29,
+					"y": 0.06,
+					"z": 1.92
+				}
+			],
+			"t": 93.5,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": 1.76,
+					"y": 0.06,
+					"z": 1.92
+				},
+				{
+					"x": -1.31,
+					"y": 0.06,
+					"z": -3.86
+				}
+			],
+			"obs": [
+				{
+					"age": 1.42,
+					"c": 0.95,
+					"x": 1.21,
+					"y": 0.06,
+					"z": 1.34
+				}
+			],
+			"t": 99.5,
+			"team": 0
+		},
+		{
+			"enemies": [
+				{
+					"x": 1.4,
+					"y": 0.06,
+					"z": 3.28
+				}
+			],
+			"obs": [
+				{
+					"age": 0.08,
+					"c": 0.95,
+					"x": 1.28,
+					"y": 0.06,
+					"z": 3.24
+				}
+			],
+			"t": 108.6,
+			"team": 1
+		}
+	],
+	"schema_version": 3,
+	"sim_time": 180.0,
+	"slot_err_mean_m": 3.295,
+	"timestamp": "2026-09-27T20:11:37",
+	"total_hits": 19,
+	"total_shots": 37,
+	"truth_blocked": 899,
+	"winner": "blue",
+	"winner_team": 1
+}

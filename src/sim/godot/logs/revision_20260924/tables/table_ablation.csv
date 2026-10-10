@@ -1,0 +1,5 @@
+group,n,treatment_side,treatment_wins,win_rate,win_lo,win_hi,binom_p_vs_half,duration_mean_s,duration_lo,duration_hi,pos_err_mean_m,pos_err_lo,pos_err_hi,aim_err_mean_deg,aim_err_lo,aim_err_hi,assist_per_robot_min,focus_fire_per_robot_min,rescue_per_robot_min,process_ms_p50,process_ms_p95,queue_p95,dropped_mean,ghost_rate,all_tracked_t_red,holm_p
+LOO_nofusion,32,red,25,0.7812,0.6124,0.8898,0.0021,95.82,80.47,111.63,1.208,1.06,1.368,32.94,28.42,37.95,18.026,9.828,6.497,30.0,31.59,0.0,0.0,0.263,24.83,0.0084
+LOO_nofocus,32,red,16,0.5,0.3363,0.6637,1.0,95.99,77.7,114.77,0.952,0.822,1.093,26.42,23.16,29.91,35.414,5.15,6.864,30.0,31.72,0.0,0.0,0.195,21.09,1.0
+LOO_noformation,32,red,17,0.5312,0.3645,0.6913,0.8601,82.27,67.2,98.44,1.071,0.915,1.278,28.61,25.68,31.93,39.249,11.675,7.716,30.03,31.8,0.0,0.0,0.225,18.76,1.0
+LOO_norescue,32,red,22,0.6875,0.5143,0.8205,0.0501,82.64,68.4,97.51,1.488,1.262,1.726,34.22,30.15,38.27,21.997,11.035,3.354,30.07,31.69,0.0,0.0,0.326,21.62,0.1503

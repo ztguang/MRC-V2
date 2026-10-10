@@ -1,0 +1,242 @@
+RUN B_proposed_run01 attempt=1
+OK B_proposed_run01 rc=0 blend_n=3223 multi=1231 pos=1.289
+RUN B_uniform_run01 attempt=1
+OK B_uniform_run01 rc=0 blend_n=3723 multi=1920 pos=1.29
+RUN B_nearest_run01 attempt=1
+OK B_nearest_run01 rc=0 blend_n=2494 multi=1145 pos=1.492
+RUN B_legacy_run01 attempt=1
+OK B_legacy_run01 rc=0 blend_n=3557 multi=1577 pos=1.487
+RUN B_eq_run01 attempt=1
+OK B_eq_run01 rc=0 blend_n=4945 multi=3014 pos=1.608
+RUN B_conf_run01 attempt=1
+OK B_conf_run01 rc=0 blend_n=4309 multi=1553 pos=1.315
+RUN B_dist_run01 attempt=1
+OK B_dist_run01 rc=0 blend_n=3779 multi=1802 pos=1.488
+RUN B_lam05_run01 attempt=1
+OK B_lam05_run01 rc=0 blend_n=3762 multi=1887 pos=1.421
+RUN B_lam20_run01 attempt=1
+OK B_lam20_run01 rc=0 blend_n=3473 multi=1886 pos=1.467
+RUN B_d400_run01 attempt=1
+OK B_d400_run01 rc=0 blend_n=3857 multi=2391 pos=1.778
+RUN B_calib0_run01 attempt=1
+OK B_calib0_run01 rc=0 blend_n=1631 multi=677 pos=0.853
+RUN B_calib400_run01 attempt=1
+OK B_calib400_run01 rc=0 blend_n=2585 multi=837 pos=0.819
+RUN B_proposed_run02 attempt=1
+OK B_proposed_run02 rc=0 blend_n=4290 multi=1699 pos=1.173
+RUN B_uniform_run02 attempt=1
+OK B_uniform_run02 rc=0 blend_n=3291 multi=922 pos=1.028
+RUN B_nearest_run02 attempt=1
+OK B_nearest_run02 rc=0 blend_n=4196 multi=1595 pos=0.989
+RUN B_legacy_run02 attempt=1
+OK B_legacy_run02 rc=0 blend_n=5230 multi=2059 pos=1.292
+RUN B_eq_run02 attempt=1
+OK B_eq_run02 rc=0 blend_n=5083 multi=2003 pos=1.544
+RUN B_conf_run02 attempt=1
+OK B_conf_run02 rc=0 blend_n=3823 multi=1579 pos=1.404
+RUN B_dist_run02 attempt=1
+OK B_dist_run02 rc=0 blend_n=4871 multi=1887 pos=1.098
+RUN B_lam05_run02 attempt=1
+OK B_lam05_run02 rc=0 blend_n=3077 multi=1517 pos=1.226
+RUN B_lam20_run02 attempt=1
+OK B_lam20_run02 rc=0 blend_n=3938 multi=1923 pos=1.47
+RUN B_d400_run02 attempt=1
+OK B_d400_run02 rc=0 blend_n=5346 multi=2134 pos=1.525
+RUN B_calib0_run02 attempt=1
+OK B_calib0_run02 rc=0 blend_n=3772 multi=1258 pos=1.128
+RUN B_calib400_run02 attempt=1
+OK B_calib400_run02 rc=0 blend_n=5435 multi=1674 pos=1.142
+RUN B_proposed_run03 attempt=1
+OK B_proposed_run03 rc=0 blend_n=2310 multi=879 pos=1.131
+RUN B_uniform_run03 attempt=1
+OK B_uniform_run03 rc=0 blend_n=4875 multi=2028 pos=1.672
+RUN B_nearest_run03 attempt=1
+OK B_nearest_run03 rc=0 blend_n=3095 multi=1268 pos=1.165
+RUN B_legacy_run03 attempt=1
+OK B_legacy_run03 rc=0 blend_n=2493 multi=882 pos=0.895
+RUN B_eq_run03 attempt=1
+OK B_eq_run03 rc=0 blend_n=4507 multi=2130 pos=1.397
+RUN B_conf_run03 attempt=1
+OK B_conf_run03 rc=0 blend_n=3822 multi=1660 pos=1.038
+RUN B_dist_run03 attempt=1
+OK B_dist_run03 rc=0 blend_n=2880 multi=947 pos=1.23
+RUN B_lam05_run03 attempt=1
+OK B_lam05_run03 rc=0 blend_n=5619 multi=2998 pos=1.337
+RUN B_lam20_run03 attempt=1
+OK B_lam20_run03 rc=0 blend_n=2760 multi=879 pos=1.094
+RUN B_d400_run03 attempt=1
+OK B_d400_run03 rc=0 blend_n=3412 multi=1187 pos=1.381
+RUN B_calib0_run03 attempt=1
+OK B_calib0_run03 rc=0 blend_n=4567 multi=1983 pos=1.109
+RUN B_calib400_run03 attempt=1
+OK B_calib400_run03 rc=0 blend_n=2832 multi=1234 pos=1.225
+RUN B_proposed_run04 attempt=1
+OK B_proposed_run04 rc=0 blend_n=4519 multi=1767 pos=1.45
+RUN B_uniform_run04 attempt=1
+OK B_uniform_run04 rc=0 blend_n=3763 multi=1356 pos=1.119
+RUN B_nearest_run04 attempt=1
+OK B_nearest_run04 rc=0 blend_n=2107 multi=673 pos=1.082
+RUN B_legacy_run04 attempt=1
+OK B_legacy_run04 rc=0 blend_n=4239 multi=2012 pos=1.423
+RUN B_eq_run04 attempt=1
+OK B_eq_run04 rc=0 blend_n=3387 multi=1483 pos=1.394
+RUN B_conf_run04 attempt=1
+OK B_conf_run04 rc=0 blend_n=2890 multi=1405 pos=1.272
+RUN B_dist_run04 attempt=1
+OK B_dist_run04 rc=0 blend_n=4064 multi=1517 pos=1.485
+RUN B_lam05_run04 attempt=1
+OK B_lam05_run04 rc=0 blend_n=4205 multi=1908 pos=1.828
+RUN B_lam20_run04 attempt=1
+OK B_lam20_run04 rc=0 blend_n=3891 multi=1719 pos=1.433
+RUN B_d400_run04 attempt=1
+OK B_d400_run04 rc=0 blend_n=3266 multi=1332 pos=1.376
+RUN B_calib0_run04 attempt=1
+OK B_calib0_run04 rc=0 blend_n=2951 multi=833 pos=1.029
+RUN B_calib400_run04 attempt=1
+OK B_calib400_run04 rc=0 blend_n=1906 multi=590 pos=1.154
+RUN B_proposed_run05 attempt=1
+OK B_proposed_run05 rc=0 blend_n=2379 multi=1041 pos=0.936
+RUN B_uniform_run05 attempt=1
+OK B_uniform_run05 rc=0 blend_n=3160 multi=1241 pos=1.454
+RUN B_nearest_run05 attempt=1
+OK B_nearest_run05 rc=0 blend_n=2602 multi=1039 pos=1.347
+RUN B_legacy_run05 attempt=1
+OK B_legacy_run05 rc=0 blend_n=1425 multi=833 pos=0.89
+RUN B_eq_run05 attempt=1
+OK B_eq_run05 rc=0 blend_n=2177 multi=1086 pos=0.853
+RUN B_conf_run05 attempt=1
+OK B_conf_run05 rc=0 blend_n=3136 multi=1259 pos=1.653
+RUN B_dist_run05 attempt=1
+OK B_dist_run05 rc=0 blend_n=3581 multi=1502 pos=1.212
+RUN B_lam05_run05 attempt=1
+OK B_lam05_run05 rc=0 blend_n=3379 multi=2018 pos=1.215
+RUN B_lam20_run05 attempt=1
+OK B_lam20_run05 rc=0 blend_n=3798 multi=1994 pos=1.561
+RUN B_d400_run05 attempt=1
+OK B_d400_run05 rc=0 blend_n=2926 multi=1221 pos=1.269
+RUN B_calib0_run05 attempt=1
+OK B_calib0_run05 rc=0 blend_n=2570 multi=916 pos=1.254
+RUN B_calib400_run05 attempt=1
+OK B_calib400_run05 rc=0 blend_n=2839 multi=767 pos=1.044
+RUN B_proposed_run06 attempt=1
+OK B_proposed_run06 rc=0 blend_n=4039 multi=2090 pos=1.805
+RUN B_uniform_run06 attempt=1
+OK B_uniform_run06 rc=0 blend_n=2671 multi=1024 pos=1.374
+RUN B_nearest_run06 attempt=1
+OK B_nearest_run06 rc=0 blend_n=3781 multi=1673 pos=1.472
+RUN B_legacy_run06 attempt=1
+OK B_legacy_run06 rc=0 blend_n=4009 multi=2581 pos=1.615
+RUN B_eq_run06 attempt=1
+OK B_eq_run06 rc=0 blend_n=3190 multi=1730 pos=1.739
+RUN B_conf_run06 attempt=1
+OK B_conf_run06 rc=0 blend_n=3251 multi=1419 pos=1.524
+RUN B_dist_run06 attempt=1
+OK B_dist_run06 rc=0 blend_n=3174 multi=1726 pos=1.34
+RUN B_lam05_run06 attempt=1
+OK B_lam05_run06 rc=0 blend_n=3901 multi=1691 pos=1.707
+RUN B_lam20_run06 attempt=1
+OK B_lam20_run06 rc=0 blend_n=3453 multi=1875 pos=1.296
+RUN B_d400_run06 attempt=1
+OK B_d400_run06 rc=0 blend_n=3714 multi=1566 pos=1.583
+RUN B_calib0_run06 attempt=1
+OK B_calib0_run06 rc=0 blend_n=2718 multi=1416 pos=1.434
+RUN B_calib400_run06 attempt=1
+OK B_calib400_run06 rc=0 blend_n=3438 multi=1578 pos=1.373
+RUN B_proposed_run07 attempt=1
+OK B_proposed_run07 rc=0 blend_n=5042 multi=2009 pos=1.679
+RUN B_uniform_run07 attempt=1
+OK B_uniform_run07 rc=0 blend_n=4104 multi=1541 pos=1.774
+RUN B_nearest_run07 attempt=1
+OK B_nearest_run07 rc=0 blend_n=3309 multi=1328 pos=1.622
+RUN B_legacy_run07 attempt=1
+OK B_legacy_run07 rc=0 blend_n=4096 multi=1754 pos=1.334
+RUN B_eq_run07 attempt=1
+OK B_eq_run07 rc=0 blend_n=3924 multi=1583 pos=1.741
+RUN B_conf_run07 attempt=1
+OK B_conf_run07 rc=0 blend_n=3128 multi=1198 pos=1.663
+RUN B_dist_run07 attempt=1
+OK B_dist_run07 rc=0 blend_n=3689 multi=1221 pos=1.42
+RUN B_lam05_run07 attempt=1
+OK B_lam05_run07 rc=0 blend_n=3123 multi=1112 pos=1.213
+RUN B_lam20_run07 attempt=1
+OK B_lam20_run07 rc=0 blend_n=4459 multi=2114 pos=1.536
+RUN B_d400_run07 attempt=1
+OK B_d400_run07 rc=0 blend_n=4385 multi=2069 pos=1.746
+RUN B_calib0_run07 attempt=1
+OK B_calib0_run07 rc=0 blend_n=3572 multi=1541 pos=1.232
+RUN B_calib400_run07 attempt=1
+OK B_calib400_run07 rc=0 blend_n=2904 multi=1172 pos=1.201
+RUN B_proposed_run08 attempt=1
+OK B_proposed_run08 rc=0 blend_n=2641 multi=1311 pos=1.024
+RUN B_uniform_run08 attempt=1
+OK B_uniform_run08 rc=0 blend_n=3381 multi=1063 pos=1.37
+RUN B_nearest_run08 attempt=1
+OK B_nearest_run08 rc=0 blend_n=3004 multi=1602 pos=0.938
+RUN B_legacy_run08 attempt=1
+OK B_legacy_run08 rc=0 blend_n=3600 multi=1683 pos=0.984
+RUN B_eq_run08 attempt=1
+OK B_eq_run08 rc=0 blend_n=3130 multi=1539 pos=1.277
+RUN B_conf_run08 attempt=1
+OK B_conf_run08 rc=0 blend_n=2249 multi=1142 pos=0.888
+RUN B_dist_run08 attempt=1
+OK B_dist_run08 rc=0 blend_n=3633 multi=1495 pos=1.207
+RUN B_lam05_run08 attempt=1
+OK B_lam05_run08 rc=0 blend_n=3773 multi=1758 pos=1.132
+RUN B_lam20_run08 attempt=1
+OK B_lam20_run08 rc=0 blend_n=3777 multi=1540 pos=1.431
+RUN B_d400_run08 attempt=1
+OK B_d400_run08 rc=0 blend_n=2037 multi=905 pos=0.984
+RUN B_calib0_run08 attempt=1
+OK B_calib0_run08 rc=0 blend_n=2162 multi=852 pos=0.792
+RUN B_calib400_run08 attempt=1
+OK B_calib400_run08 rc=0 blend_n=3441 multi=1293 pos=1.398
+RUN B_proposed_run09 attempt=1
+OK B_proposed_run09 rc=0 blend_n=2136 multi=1034 pos=0.789
+RUN B_uniform_run09 attempt=1
+OK B_uniform_run09 rc=0 blend_n=3537 multi=1793 pos=1.661
+RUN B_nearest_run09 attempt=1
+OK B_nearest_run09 rc=0 blend_n=3741 multi=1805 pos=1.333
+RUN B_legacy_run09 attempt=1
+OK B_legacy_run09 rc=0 blend_n=3092 multi=1278 pos=0.87
+RUN B_eq_run09 attempt=1
+OK B_eq_run09 rc=0 blend_n=3363 multi=1461 pos=1.287
+RUN B_conf_run09 attempt=1
+OK B_conf_run09 rc=0 blend_n=2863 multi=874 pos=0.951
+RUN B_dist_run09 attempt=1
+OK B_dist_run09 rc=0 blend_n=2596 multi=1075 pos=0.974
+RUN B_lam05_run09 attempt=1
+OK B_lam05_run09 rc=0 blend_n=3092 multi=1340 pos=1.594
+RUN B_lam20_run09 attempt=1
+OK B_lam20_run09 rc=0 blend_n=2277 multi=993 pos=0.809
+RUN B_d400_run09 attempt=1
+OK B_d400_run09 rc=0 blend_n=2595 multi=952 pos=1.372
+RUN B_calib0_run09 attempt=1
+OK B_calib0_run09 rc=0 blend_n=3122 multi=1465 pos=0.832
+RUN B_calib400_run09 attempt=1
+OK B_calib400_run09 rc=0 blend_n=3417 multi=1241 pos=1.235
+RUN B_proposed_run10 attempt=1
+OK B_proposed_run10 rc=0 blend_n=1980 multi=874 pos=0.833
+RUN B_uniform_run10 attempt=1
+OK B_uniform_run10 rc=0 blend_n=3636 multi=1658 pos=1.477
+RUN B_nearest_run10 attempt=1
+OK B_nearest_run10 rc=0 blend_n=2778 multi=1196 pos=0.972
+RUN B_legacy_run10 attempt=1
+OK B_legacy_run10 rc=0 blend_n=3569 multi=1500 pos=1.145
+RUN B_eq_run10 attempt=1
+OK B_eq_run10 rc=0 blend_n=1212 multi=594 pos=0.809
+RUN B_conf_run10 attempt=1
+OK B_conf_run10 rc=0 blend_n=4360 multi=2084 pos=1.372
+RUN B_dist_run10 attempt=1
+OK B_dist_run10 rc=0 blend_n=3264 multi=1577 pos=1.269
+RUN B_lam05_run10 attempt=1
+OK B_lam05_run10 rc=0 blend_n=2949 multi=1224 pos=1.241
+RUN B_lam20_run10 attempt=1
+OK B_lam20_run10 rc=0 blend_n=1947 multi=718 pos=0.938
+RUN B_d400_run10 attempt=1
+OK B_d400_run10 rc=0 blend_n=3066 multi=1539 pos=1.699
+RUN B_calib0_run10 attempt=1
+OK B_calib0_run10 rc=0 blend_n=4390 multi=1599 pos=1.69
+RUN B_calib400_run10 attempt=1
+OK B_calib400_run10 rc=0 blend_n=2138 multi=787 pos=1.065
+SUMMARY 120
+BOTH_DONE

@@ -1,0 +1,16 @@
+{
+  "error": "no METRICS_JSON in log",
+  "log_tail": "VISION id=1 红2 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\nFIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\nHIT robot=4 total_hits=2 victim=0\nEVADE id=0 HP 1/5 attacker=4 → (1.974124, 0.056994, 4.384837)\n[2026-07-30 13:01:58.002] [warning] [Tracker] Large dt: 4.207s\n[2026-07-30 13:02:00.042] [warning] [Tracker] Large dt: 3.957s\n[2026-07-30 13:02:04.193] [warning] [Tracker] Large dt: 4.150s\n[2026-07-30 13:02:05.740] [warning] [Tracker] Large dt: 4.365s\nFIRE VISION id=0 红1 reason=vision_shoot armor=1 age=0.77 since_see=0.77 tracker=detecting control=true shoot_flag=true\nFIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.27 since_see=0.27 tracker=detecting control=true shoot_flag=true\n[2026-07-30 13:02:10.003] [warning] [Tracker] Large dt: 4.264s\n[2026-07-30 13:02:13.434] [warning] [Tracker] Large dt: 4.892s\n[2026-07-30 13:02:18.905] [warning] [Tracker] Large dt: 4.275s\n[2026-07-30 13:02:21.626] [warning] [Tracker] Large dt: 3.973s\nFIRE VISION id=1 红2 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\nHIT robot=1 total_hits=7 victim=4\nEVADE id=4 HP 3/5 attacker=1 → (2.823553, 0.056994, -0.925637)\n[2026-07-30 13:02:28.121] [warning] [Tracker] Large dt: 4.554s\n[2026-07-30 13:02:30.449] [warning] [Tracker] Large dt: 4.247s\n[2026-07-30 13:02:34.327] [warning] [Tracker] Large dt: 3.879s\nFIRE VISION id=1 红2 reason=vision_shoot armor=1 age=0.28 since_see=0.28 tracker=detecting control=true shoot_flag=true\nHIT robot=1 total_hits=8 victim=4\nEVADE id=4 HP 2/5 attacker=1 → (-4.700612, 0.056994, 1.373472)\n[2026-07-30 13:02:40.306] [warning] [Tracker] Large dt: 4.533s\n[2026-07-30 13:02:44.237] [warning] [Tracker] Large dt: 3.927s\n[2026-07-30 13:02:46.234] [warning] [Tracker] Large dt: 3.764s\nFIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.92 since_see=0.92 tracker=detecting control=true shoot_flag=true\n",
+  "exp_id": "expA",
+  "exp_name": "solo_both",
+  "run_index": 7,
+  "run_id": "expA_solo_both_run07",
+  "log_coop_rescue": 0,
+  "log_fire_coop_focus": 0,
+  "log_fire_coop_rescue": 0,
+  "log_fire_coop_shared": 0,
+  "log_fire_vision": 26,
+  "log_fire_sensor": 1,
+  "log_out_count": 3,
+  "log_hit_count": 22
+}

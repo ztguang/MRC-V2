@@ -1,0 +1,3 @@
+group,n,treatment_side,treatment_wins,win_rate,win_lo,win_hi,binom_p_vs_half,duration_mean_s,duration_lo,duration_hi,pos_err_mean_m,pos_err_lo,pos_err_hi,aim_err_mean_deg,aim_err_lo,aim_err_hi,assist_per_robot_min,focus_fire_per_robot_min,rescue_per_robot_min,process_ms_p50,process_ms_p95,queue_p95,dropped_mean,ghost_rate,all_tracked_t_red,holm_p
+E1,16,red,8,0.5,0.28,0.72,1.0,103.42,75.44,132.67,0.963,0.795,1.154,28.05,23.66,33.09,37.05,9.969,6.816,29.98,31.7,0.0,0.0,0.187,20.65,
+E1s,16,blue,12,0.75,0.505,0.8982,0.0768,72.99,53.34,97.22,1.0,0.851,1.162,28.17,24.1,32.39,37.225,12.167,8.348,30.06,31.82,0.0,0.0,0.212,20.87,

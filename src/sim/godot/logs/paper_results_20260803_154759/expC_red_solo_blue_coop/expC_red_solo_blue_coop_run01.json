@@ -1,0 +1,16 @@
+{
+  "error": "no METRICS_JSON in log",
+  "log_tail": "[run_godot_nvidia] SIM_COOP_RED=solo  SIM_COOP_BLUE=coop  (solo=无协同, coop=有协同)\n",
+  "exp_id": "expC",
+  "exp_name": "red_solo_blue_coop",
+  "run_index": 1,
+  "run_id": "expC_red_solo_blue_coop_run01",
+  "log_coop_rescue": 0,
+  "log_fire_coop_focus": 0,
+  "log_fire_coop_rescue": 0,
+  "log_fire_coop_shared": 0,
+  "log_fire_vision": 0,
+  "log_fire_sensor": 0,
+  "log_out_count": 0,
+  "log_hit_count": 0
+}

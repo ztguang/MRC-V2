@@ -1,0 +1,11 @@
+#!/bin/bash
+HERE="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$HERE:$HERE/runtime${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export OV_CACHE_DIR="${OV_CACHE_DIR:-/tmp/ov_cache}"
+mkdir -p "$OV_CACHE_DIR"
+export LD_LIBRARY_PATH="$HERE/runtime:$LD_LIBRARY_PATH"
+# Multimodal fusion patch: 2.5s neighbor age + fusion_assist/fusion_fused tagging
+if [ -f "$HERE/libsp_fusion_patch.so" ]; then
+  export LD_PRELOAD="$HERE/libsp_fusion_patch.so${LD_PRELOAD:+:$LD_PRELOAD}"
+fi
+exec "$HERE/sp_vision_worker.real" "$@"

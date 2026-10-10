@@ -1,0 +1,6 @@
+# Generated from the current Godot Camera3D and pitch-axis transform.
+R_gimbal2imubody: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+camera_matrix: [772.0224913834, 0.0, 360.0, 0.0, 772.0224913834, 360.0, 0.0, 0.0, 1.0]
+distort_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]
+R_camera2gimbal: [0.0000000298, 0.0, 1.0, -1.0, 0.0, 0.0000000298, 0.0, -1.0, 0.0]
+t_camera2gimbal: [0.0, 0.0, 0.0]

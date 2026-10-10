@@ -1,0 +1,46 @@
+{
+  "A": {
+    "label": "A solo双方",
+    "n": 10,
+    "fusion_assist_mean": 0.0,
+    "fusion_valid_mean": 0.0,
+    "rescue_mean": 0.0,
+    "coop_focus_fire_mean": 0.0,
+    "coop_rescue_fire_mean": 0.0,
+    "detection_mean": 62.1,
+    "control_mean": 62.1
+  },
+  "B": {
+    "label": "B coop双方",
+    "n": 10,
+    "fusion_assist_mean": 0.0,
+    "fusion_valid_mean": 30.7,
+    "rescue_mean": 26.3,
+    "coop_focus_fire_mean": 13.1,
+    "coop_rescue_fire_mean": 18.8,
+    "detection_mean": 30.7,
+    "control_mean": 30.7
+  },
+  "C": {
+    "label": "C 非对称蓝协同",
+    "n": 10,
+    "fusion_assist_mean": 0.0,
+    "fusion_valid_mean": 24.6,
+    "rescue_mean": 3.4,
+    "coop_focus_fire_mean": 10.4,
+    "coop_rescue_fire_mean": 2.9,
+    "detection_mean": 45.1,
+    "control_mean": 45.1
+  },
+  "D": {
+    "label": "D 非对称红协同",
+    "n": 10,
+    "fusion_assist_mean": 0.0,
+    "fusion_valid_mean": 19.5,
+    "rescue_mean": 2.3,
+    "coop_focus_fire_mean": 10.7,
+    "coop_rescue_fire_mean": 3.5,
+    "detection_mean": 40.1,
+    "control_mean": 40.0
+  }
+}

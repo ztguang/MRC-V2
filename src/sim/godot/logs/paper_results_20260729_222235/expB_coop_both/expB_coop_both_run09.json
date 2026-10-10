@@ -1,0 +1,17 @@
+{
+  "error": "no METRICS_JSON in log",
+  "log_tail": "1:05.271] [warning] [Tracker] Large dt: 3.440s\n[2026-07-29 23:31:08.690] [warning] [Tracker] Large dt: 3.410s\n[2026-07-29 23:31:12.308] [warning] [Tracker] Large dt: 3.626s\n[2026-07-29 23:31:15.582] [warning] [Tracker] Large dt: 3.273s\n[2026-07-29 23:31:18.901] [warning] [Tracker] Large dt: 3.316s\n[2026-07-29 23:31:22.163] [warning] [Tracker] Large dt: 3.265s\n[2026-07-29 23:31:25.546] [warning] [Tracker] Large dt: 3.381s\n[2026-07-29 23:31:29.120] [warning] [Tracker] Large dt: 3.581s\n[2026-07-29 23:31:32.404] [warning] [Tracker] Large dt: 3.679s\n[2026-07-29 23:31:32.754] [warning] [Tracker] Large dt: 3.630s\n[2026-07-29 23:31:36.643] [warning] [Tracker] Large dt: 3.885s\n[2026-07-29 23:31:40.100] [warning] [Tracker] Large dt: 3.458s\n[2026-07-29 23:31:43.671] [warning] [Tracker] Large dt: 3.572s\n[2026-07-29 23:31:47.229] [warning] [Tracker] Large dt: 3.556s\n[2026-07-29 23:31:50.533] [warning] [Tracker] Large dt: 3.305s\n[2026-07-29 23:31:53.786] [warning] [Tracker] Large dt: 3.600s\n[2026-07-29 23:31:54.175] [warning] [Tracker] Large dt: 3.649s\n[2026-07-29 23:31:57.973] [warning] [Tracker] Large dt: 3.790s\n[2026-07-29 23:32:01.481] [warning] [Tracker] Large dt: 3.519s\n[2026-07-29 23:32:05.165] [warning] [Tracker] Large dt: 3.677s\n[2026-07-29 23:32:08.523] [warning] [Tracker] Large dt: 3.355s\n[2026-07-29 23:32:11.821] [warning] [Tracker] Large dt: 3.303s\n[2026-07-29 23:32:15.321] [warning] [Tracker] Large dt: 3.504s\n[2026-07-29 23:32:18.813] [warning] [Tracker] Large dt: 3.488s\n[2026-07-29 23:32:22.587] [warning] [Tracker] Large dt: 3.778s\n[2026-07-29 23:32:26.110] [warning] [Tracker] Large dt: 3.518s\n[2026-07-29 23:32:29.367] [warning] [Tracker] Large dt: 3.654s\n[2026-07-29 23:32:29.714] [warning] [Tracker] Large dt: 3.609s\n[2026-07-29 23:32:32.716] [warning] [Tracker] Large dt: 3.337s\n[2026-07-29 23:32:33.043] [warning] [Tracker] Large dt: 3.323s\n[2026-07-29 23:32:36.616] [warning] [Tracker] Large dt: 3.584s\n[2026-07-29 23:32:40.151] [warning] [Tracker] Large dt: 3.894s\n",
+  "exp_id": "expB",
+  "exp_name": "coop_both",
+  "run_index": 9,
+  "run_id": "expB_coop_both_run09",
+  "log_coop_rescue": 24,
+  "log_fire_coop_focus": 17,
+  "log_fire_coop_rescue": 20,
+  "log_fire_coop_shared": 0,
+  "log_fire_vision": 17,
+  "log_fire_sensor": 37,
+  "log_out_count": 4,
+  "log_hit_count": 25,
+  "rescue_events": 24
+}

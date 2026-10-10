@@ -1,0 +1,77 @@
+enemy_color: "red"
+yolo_name: yolo11
+camera_name: "simulated"
+image_width: 320
+image_height: 240
+camera_fps: 1
+fov_degrees: 50
+exposure_ms: 2.0
+gain: 0.0
+gamma: 1.0
+tonemap_exposure: 1.0
+ambient_light_energy: 0.8
+sun_energy: 1.1
+classify_model: ../../../sp_vision_25/assets/tiny_resnet.onnx
+yolov5_model_path: ../../../sp_vision_25/assets/yolov5.xml
+yolov8_model_path: ../../../sp_vision_25/assets/yolov8.xml
+yolo11_model_path: ../../../sp_vision_25/assets/yolo11.xml
+device: CPU
+min_confidence: 0.35
+bullet_speed: 10.0
+target_spin_rad_s: 4.0
+use_traditional: true
+threshold: 130
+max_angle_error: 45
+min_lightbar_ratio: 1.5
+max_lightbar_ratio: 20
+min_lightbar_length: 5
+min_armor_ratio: 1
+max_armor_ratio: 5
+max_side_ratio: 1.5
+max_rectangular_error: 25
+roi: {x: 0, y: 0, width: 1280, height: 720}
+use_roi: false
+
+min_detect_count: 2
+max_temp_lost_count: 30
+outpost_max_temp_lost_count: 60
+tracker_max_dt: 0.5
+tracker_max_match_distance: 0.75
+tracker_allow_infantry_aliases: true
+tracker_bad_converge_min_samples: 60
+tracker_bad_converge_failure_ratio: 0.65
+tracker_radius_variance: 0.001
+tracker_axis_variance: 0.0001
+
+yaw_offset: 0.0
+pitch_offset: 0.0
+comming_angle: 55
+leaving_angle: 20
+decision_speed: 7
+high_speed_delay_time: 0.0
+low_speed_delay_time: 0.0
+
+fire_thresh: 0.0035
+max_yaw_acc: 50
+Q_yaw: [9e6, 0]
+R_yaw: [1]
+max_pitch_acc: 100
+Q_pitch: [9e6, 0]
+R_pitch: [1]
+
+# Simulated electrical-control gains applied to Planner trajectory feedforward.
+auto_aim_yaw_velocity_feedforward: 1.0
+auto_aim_yaw_acceleration_feedforward: 1.0
+auto_aim_pitch_velocity_feedforward: 1.0
+auto_aim_pitch_acceleration_feedforward: 1.0
+
+first_tolerance: 3
+second_tolerance: 2
+judge_distance: 2
+auto_fire: true
+
+R_gimbal2imubody: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+camera_matrix: [772.02, 0, 640, 0, 772.02, 360, 0, 0, 1]
+distort_coeffs: [0, 0, 0, 0, 0]
+R_camera2gimbal: [0, 0, 1, -1, 0, 0, 0, -1, 0]
+t_camera2gimbal: [0, 0, 0]

@@ -1,0 +1,18 @@
+Start testing: Jul 27 09:44 CST
+----------------------------------------------------------
+1/1 Testing: sp_vision_ekf_test
+1/1 Test: sp_vision_ekf_test
+Command: "/root/下载/lunwen/sim/native/build/sp_vision_ekf_test"
+Directory: /root/下载/lunwen/sim/native/build
+"sp_vision_ekf_test" start time: Jul 27 09:44 CST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"sp_vision_ekf_test" end time: Jul 27 09:44 CST
+"sp_vision_ekf_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jul 27 09:44 CST

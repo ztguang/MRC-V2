@@ -1,0 +1,4 @@
+exp_id,exp_name,run_index,run_id,json_path,log_path,cli_args,status,winner,sim_time,coop_side_won
+expA,solo_both,1,expA_solo_both_run01,/root/lunwen/sim/godot/logs/paper_results_20260803_154821/expA_solo_both/expA_solo_both_run01.json,/root/lunwen/sim/godot/logs/paper_results_20260803_154821/logs/expA_solo_both_run01.log,solo,rc1,?,?,?
+expA,solo_both,2,expA_solo_both_run02,/root/lunwen/sim/godot/logs/paper_results_20260803_154821/expA_solo_both/expA_solo_both_run02.json,/root/lunwen/sim/godot/logs/paper_results_20260803_154821/logs/expA_solo_both_run02.log,solo,rc1,?,?,?
+expA,solo_both,3,expA_solo_both_run03,/root/lunwen/sim/godot/logs/paper_results_20260803_154821/expA_solo_both/expA_solo_both_run03.json,/root/lunwen/sim/godot/logs/paper_results_20260803_154821/logs/expA_solo_both_run03.log,solo,rc1,?,?,?

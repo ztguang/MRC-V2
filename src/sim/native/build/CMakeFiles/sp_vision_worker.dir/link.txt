@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/sp_vision_worker.dir/src/worker_main.cpp.o -o /root/下载/lunwen/sim/godot/bin/linux-x86_64/sp_vision_worker  -Wl,-rpath,"\$ORIGIN:\$ORIGIN/runtime:/root/下载/lunwen/sim/godot/bin/linux-x86_64" /root/下载/lunwen/sim/godot/bin/linux-x86_64/libsp_vision_engine.so /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.7.0 

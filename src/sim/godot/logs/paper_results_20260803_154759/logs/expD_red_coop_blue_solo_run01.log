@@ -1,0 +1,1 @@
+[run_godot_nvidia] SIM_COOP_RED=coop  SIM_COOP_BLUE=solo  (solo=无协同, coop=有协同)

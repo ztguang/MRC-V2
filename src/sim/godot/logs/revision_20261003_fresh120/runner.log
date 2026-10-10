@@ -1,0 +1,14 @@
+JOBS 208
+RUN W_redfull_run01 attempt=1
+OK W_redfull_run01 rc=0
+RUN W_bluefull_run01 attempt=1
+OK W_bluefull_run01 rc=0
+RUN W_redfull_run02 attempt=1
+OK W_redfull_run02 rc=0
+RUN W_bluefull_run02 attempt=1
+OK W_bluefull_run02 rc=0
+RUN W_redfull_run03 attempt=1
+OK W_redfull_run03 rc=0
+RUN W_bluefull_run03 attempt=1
+OK W_bluefull_run03 rc=0
+RUN W_redfull_run04 attempt=1

@@ -1,0 +1,5 @@
+group,n,fusion_assist_mean,fusion_valid_mean,rescue_mean,coop_focus_fire_mean,coop_rescue_fire_mean,detection_mean,control_mean
+A solo双方,10,0.00,0.00,0.00,0.00,0.00,55.30,84.40
+B coop双方,10,40.10,74.80,25.50,11.10,13.00,40.80,74.80
+C 非对称蓝协同,10,15.10,29.70,1.90,11.30,3.30,36.20,61.20
+D 非对称红协同,10,17.90,33.00,1.90,13.20,2.90,36.80,66.70

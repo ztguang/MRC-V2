@@ -1,0 +1,978 @@
+OUT=/root/lunwen/sim/godot/logs/revision_20260924
+RUN A1_both_off_run01
+OK A1_both_off_run01 rc=0
+RUN A1_both_off_run02
+OK A1_both_off_run02 rc=0
+RUN A1_both_off_run03
+OK A1_both_off_run03 rc=0
+RUN A1_both_off_run04
+OK A1_both_off_run04 rc=0
+RUN A1_both_off_run05
+OK A1_both_off_run05 rc=0
+RUN A1_both_off_run06
+OK A1_both_off_run06 rc=0
+RUN A1_both_off_run07
+OK A1_both_off_run07 rc=0
+RUN A1_both_off_run08
+OK A1_both_off_run08 rc=0
+RUN A1_both_off_run09
+OK A1_both_off_run09 rc=0
+RUN A1_both_off_run10
+OK A1_both_off_run10 rc=0
+RUN A1_both_off_run11
+OK A1_both_off_run11 rc=0
+RUN A1_both_off_run12
+OK A1_both_off_run12 rc=0
+RUN A1_both_off_run13
+OK A1_both_off_run13 rc=0
+RUN A1_both_off_run14
+OK A1_both_off_run14 rc=0
+RUN A1_both_off_run15
+OK A1_both_off_run15 rc=0
+RUN A1_both_off_run16
+OK A1_both_off_run16 rc=0
+RUN A1_both_off_run17
+OK A1_both_off_run17 rc=0
+RUN A1_both_off_run18
+OK A1_both_off_run18 rc=0
+RUN A1_both_off_run19
+OK A1_both_off_run19 rc=0
+RUN A1_both_off_run20
+OK A1_both_off_run20 rc=0
+RUN A1_both_off_run21
+OK A1_both_off_run21 rc=0
+RUN A1_both_off_run22
+OK A1_both_off_run22 rc=0
+RUN A1_both_off_run23
+OK A1_both_off_run23 rc=0
+RUN A1_both_off_run24
+OK A1_both_off_run24 rc=0
+RUN A2_both_full_run01
+OK A2_both_full_run01 rc=0
+RUN A2_both_full_run02
+OK A2_both_full_run02 rc=0
+RUN A2_both_full_run03
+OK A2_both_full_run03 rc=0
+RUN A2_both_full_run04
+OK A2_both_full_run04 rc=0
+RUN A2_both_full_run05
+OK A2_both_full_run05 rc=0
+RUN A2_both_full_run06
+OK A2_both_full_run06 rc=0
+RUN A2_both_full_run07
+OK A2_both_full_run07 rc=0
+RUN A2_both_full_run08
+OK A2_both_full_run08 rc=0
+RUN A2_both_full_run09
+OK A2_both_full_run09 rc=0
+RUN A2_both_full_run10
+OK A2_both_full_run10 rc=0
+RUN A2_both_full_run11
+OK A2_both_full_run11 rc=0
+RUN A2_both_full_run12
+OK A2_both_full_run12 rc=0
+RUN A2_both_full_run13
+OK A2_both_full_run13 rc=0
+RUN A2_both_full_run14
+OK A2_both_full_run14 rc=0
+RUN A2_both_full_run15
+OK A2_both_full_run15 rc=0
+RUN A2_both_full_run16
+OK A2_both_full_run16 rc=0
+RUN A2_both_full_run17
+OK A2_both_full_run17 rc=0
+RUN A2_both_full_run18
+OK A2_both_full_run18 rc=0
+RUN A2_both_full_run19
+OK A2_both_full_run19 rc=0
+RUN A2_both_full_run20
+OK A2_both_full_run20 rc=0
+RUN A2_both_full_run21
+OK A2_both_full_run21 rc=0
+RUN A2_both_full_run22
+OK A2_both_full_run22 rc=0
+RUN A2_both_full_run23
+OK A2_both_full_run23 rc=0
+RUN A2_both_full_run24
+OK A2_both_full_run24 rc=0
+RUN A3_red_full_blue_off_run01
+OK A3_red_full_blue_off_run01 rc=0
+RUN A3_red_full_blue_off_run02
+OK A3_red_full_blue_off_run02 rc=0
+RUN A3_red_full_blue_off_run03
+OK A3_red_full_blue_off_run03 rc=0
+RUN A3_red_full_blue_off_run04
+OK A3_red_full_blue_off_run04 rc=0
+RUN A3_red_full_blue_off_run05
+OK A3_red_full_blue_off_run05 rc=0
+RUN A3_red_full_blue_off_run06
+OK A3_red_full_blue_off_run06 rc=0
+RUN A3_red_full_blue_off_run07
+OK A3_red_full_blue_off_run07 rc=0
+RUN A3_red_full_blue_off_run08
+OK A3_red_full_blue_off_run08 rc=0
+RUN A3_red_full_blue_off_run09
+OK A3_red_full_blue_off_run09 rc=0
+RUN A3_red_full_blue_off_run10
+OK A3_red_full_blue_off_run10 rc=0
+RUN A3_red_full_blue_off_run11
+OK A3_red_full_blue_off_run11 rc=0
+RUN A3_red_full_blue_off_run12
+OK A3_red_full_blue_off_run12 rc=0
+RUN A3_red_full_blue_off_run13
+OK A3_red_full_blue_off_run13 rc=0
+RUN A3_red_full_blue_off_run14
+OK A3_red_full_blue_off_run14 rc=0
+RUN A3_red_full_blue_off_run15
+OK A3_red_full_blue_off_run15 rc=0
+RUN A3_red_full_blue_off_run16
+OK A3_red_full_blue_off_run16 rc=0
+RUN A3_red_full_blue_off_run17
+OK A3_red_full_blue_off_run17 rc=0
+RUN A3_red_full_blue_off_run18
+OK A3_red_full_blue_off_run18 rc=0
+RUN A3_red_full_blue_off_run19
+OK A3_red_full_blue_off_run19 rc=0
+RUN A3_red_full_blue_off_run20
+OK A3_red_full_blue_off_run20 rc=0
+RUN A3_red_full_blue_off_run21
+OK A3_red_full_blue_off_run21 rc=0
+RUN A3_red_full_blue_off_run22
+OK A3_red_full_blue_off_run22 rc=0
+RUN A3_red_full_blue_off_run23
+OK A3_red_full_blue_off_run23 rc=0
+RUN A3_red_full_blue_off_run24
+OK A3_red_full_blue_off_run24 rc=0
+RUN A4_red_off_blue_full_run01
+OK A4_red_off_blue_full_run01 rc=0
+RUN A4_red_off_blue_full_run02
+OK A4_red_off_blue_full_run02 rc=0
+RUN A4_red_off_blue_full_run03
+OK A4_red_off_blue_full_run03 rc=0
+RUN A4_red_off_blue_full_run04
+OK A4_red_off_blue_full_run04 rc=0
+RUN A4_red_off_blue_full_run05
+OK A4_red_off_blue_full_run05 rc=0
+RUN A4_red_off_blue_full_run06
+OK A4_red_off_blue_full_run06 rc=0
+RUN A4_red_off_blue_full_run07
+OK A4_red_off_blue_full_run07 rc=0
+RUN A4_red_off_blue_full_run08
+OK A4_red_off_blue_full_run08 rc=0
+RUN A4_red_off_blue_full_run09
+OK A4_red_off_blue_full_run09 rc=0
+RUN A4_red_off_blue_full_run10
+OK A4_red_off_blue_full_run10 rc=0
+RUN A4_red_off_blue_full_run11
+OK A4_red_off_blue_full_run11 rc=0
+RUN A4_red_off_blue_full_run12
+OK A4_red_off_blue_full_run12 rc=0
+RUN A4_red_off_blue_full_run13
+OK A4_red_off_blue_full_run13 rc=0
+RUN A4_red_off_blue_full_run14
+OK A4_red_off_blue_full_run14 rc=0
+RUN A4_red_off_blue_full_run15
+OK A4_red_off_blue_full_run15 rc=0
+RUN A4_red_off_blue_full_run16
+OK A4_red_off_blue_full_run16 rc=0
+RUN A4_red_off_blue_full_run17
+OK A4_red_off_blue_full_run17 rc=0
+RUN A4_red_off_blue_full_run18
+OK A4_red_off_blue_full_run18 rc=0
+RUN A4_red_off_blue_full_run19
+OK A4_red_off_blue_full_run19 rc=0
+RUN A4_red_off_blue_full_run20
+OK A4_red_off_blue_full_run20 rc=0
+RUN A4_red_off_blue_full_run21
+OK A4_red_off_blue_full_run21 rc=0
+RUN A4_red_off_blue_full_run22
+OK A4_red_off_blue_full_run22 rc=0
+RUN A4_red_off_blue_full_run23
+OK A4_red_off_blue_full_run23 rc=0
+RUN A4_red_off_blue_full_run24
+OK A4_red_off_blue_full_run24 rc=0
+RUN B1_full_vs_nofusion_redfull_run01
+OK B1_full_vs_nofusion_redfull_run01 rc=0
+RUN B1_full_vs_nofusion_redfull_run02
+OK B1_full_vs_nofusion_redfull_run02 rc=0
+RUN B1_full_vs_nofusion_redfull_run03
+OK B1_full_vs_nofusion_redfull_run03 rc=0
+RUN B1_full_vs_nofusion_redfull_run04
+OK B1_full_vs_nofusion_redfull_run04 rc=0
+RUN B1_full_vs_nofusion_redfull_run05
+OK B1_full_vs_nofusion_redfull_run05 rc=0
+RUN B1_full_vs_nofusion_redfull_run06
+OK B1_full_vs_nofusion_redfull_run06 rc=0
+RUN B1_full_vs_nofusion_redfull_run07
+OK B1_full_vs_nofusion_redfull_run07 rc=0
+RUN B1_full_vs_nofusion_redfull_run08
+OK B1_full_vs_nofusion_redfull_run08 rc=0
+RUN B1_full_vs_nofusion_redfull_run09
+OK B1_full_vs_nofusion_redfull_run09 rc=0
+RUN B1_full_vs_nofusion_redfull_run10
+OK B1_full_vs_nofusion_redfull_run10 rc=0
+RUN B1_full_vs_nofusion_redfull_run11
+OK B1_full_vs_nofusion_redfull_run11 rc=0
+RUN B1_full_vs_nofusion_redfull_run12
+OK B1_full_vs_nofusion_redfull_run12 rc=0
+RUN B1_full_vs_nofusion_redfull_run13
+OK B1_full_vs_nofusion_redfull_run13 rc=0
+RUN B1_full_vs_nofusion_redfull_run14
+OK B1_full_vs_nofusion_redfull_run14 rc=0
+RUN B1_full_vs_nofusion_redfull_run15
+OK B1_full_vs_nofusion_redfull_run15 rc=0
+RUN B1_full_vs_nofusion_redfull_run16
+OK B1_full_vs_nofusion_redfull_run16 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run01
+OK B1s_full_vs_nofusion_bluefull_run01 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run02
+OK B1s_full_vs_nofusion_bluefull_run02 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run03
+OK B1s_full_vs_nofusion_bluefull_run03 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run04
+OK B1s_full_vs_nofusion_bluefull_run04 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run05
+OK B1s_full_vs_nofusion_bluefull_run05 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run06
+OK B1s_full_vs_nofusion_bluefull_run06 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run07
+OK B1s_full_vs_nofusion_bluefull_run07 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run08
+OK B1s_full_vs_nofusion_bluefull_run08 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run09
+OK B1s_full_vs_nofusion_bluefull_run09 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run10
+OK B1s_full_vs_nofusion_bluefull_run10 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run11
+OK B1s_full_vs_nofusion_bluefull_run11 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run12
+OK B1s_full_vs_nofusion_bluefull_run12 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run13
+OK B1s_full_vs_nofusion_bluefull_run13 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run14
+OK B1s_full_vs_nofusion_bluefull_run14 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run15
+OK B1s_full_vs_nofusion_bluefull_run15 rc=0
+RUN B1s_full_vs_nofusion_bluefull_run16
+OK B1s_full_vs_nofusion_bluefull_run16 rc=0
+RUN B2_full_vs_nofocus_redfull_run01
+OK B2_full_vs_nofocus_redfull_run01 rc=0
+RUN B2_full_vs_nofocus_redfull_run02
+OK B2_full_vs_nofocus_redfull_run02 rc=0
+RUN B2_full_vs_nofocus_redfull_run03
+OK B2_full_vs_nofocus_redfull_run03 rc=0
+RUN B2_full_vs_nofocus_redfull_run04
+OK B2_full_vs_nofocus_redfull_run04 rc=0
+RUN B2_full_vs_nofocus_redfull_run05
+OK B2_full_vs_nofocus_redfull_run05 rc=0
+RUN B2_full_vs_nofocus_redfull_run06
+OK B2_full_vs_nofocus_redfull_run06 rc=0
+RUN B2_full_vs_nofocus_redfull_run07
+OK B2_full_vs_nofocus_redfull_run07 rc=0
+RUN B2_full_vs_nofocus_redfull_run08
+OK B2_full_vs_nofocus_redfull_run08 rc=0
+RUN B2_full_vs_nofocus_redfull_run09
+OK B2_full_vs_nofocus_redfull_run09 rc=0
+RUN B2_full_vs_nofocus_redfull_run10
+OK B2_full_vs_nofocus_redfull_run10 rc=0
+RUN B2_full_vs_nofocus_redfull_run11
+OK B2_full_vs_nofocus_redfull_run11 rc=0
+RUN B2_full_vs_nofocus_redfull_run12
+OK B2_full_vs_nofocus_redfull_run12 rc=0
+RUN B2_full_vs_nofocus_redfull_run13
+OK B2_full_vs_nofocus_redfull_run13 rc=0
+RUN B2_full_vs_nofocus_redfull_run14
+OK B2_full_vs_nofocus_redfull_run14 rc=0
+RUN B2_full_vs_nofocus_redfull_run15
+OK B2_full_vs_nofocus_redfull_run15 rc=0
+RUN B2_full_vs_nofocus_redfull_run16
+OK B2_full_vs_nofocus_redfull_run16 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run01
+OK B2s_full_vs_nofocus_bluefull_run01 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run02
+OK B2s_full_vs_nofocus_bluefull_run02 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run03
+OK B2s_full_vs_nofocus_bluefull_run03 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run04
+OK B2s_full_vs_nofocus_bluefull_run04 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run05
+OK B2s_full_vs_nofocus_bluefull_run05 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run06
+OK B2s_full_vs_nofocus_bluefull_run06 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run07
+OK B2s_full_vs_nofocus_bluefull_run07 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run08
+OK B2s_full_vs_nofocus_bluefull_run08 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run09
+OK B2s_full_vs_nofocus_bluefull_run09 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run10
+OK B2s_full_vs_nofocus_bluefull_run10 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run11
+OK B2s_full_vs_nofocus_bluefull_run11 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run12
+OK B2s_full_vs_nofocus_bluefull_run12 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run13
+OK B2s_full_vs_nofocus_bluefull_run13 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run14
+OK B2s_full_vs_nofocus_bluefull_run14 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run15
+OK B2s_full_vs_nofocus_bluefull_run15 rc=0
+RUN B2s_full_vs_nofocus_bluefull_run16
+OK B2s_full_vs_nofocus_bluefull_run16 rc=0
+RUN B3_full_vs_noform_redfull_run01
+OK B3_full_vs_noform_redfull_run01 rc=0
+RUN B3_full_vs_noform_redfull_run02
+OK B3_full_vs_noform_redfull_run02 rc=0
+RUN B3_full_vs_noform_redfull_run03
+OK B3_full_vs_noform_redfull_run03 rc=0
+RUN B3_full_vs_noform_redfull_run04
+OK B3_full_vs_noform_redfull_run04 rc=0
+RUN B3_full_vs_noform_redfull_run05
+OK B3_full_vs_noform_redfull_run05 rc=0
+RUN B3_full_vs_noform_redfull_run06
+OK B3_full_vs_noform_redfull_run06 rc=0
+RUN B3_full_vs_noform_redfull_run07
+OK B3_full_vs_noform_redfull_run07 rc=0
+RUN B3_full_vs_noform_redfull_run08
+OK B3_full_vs_noform_redfull_run08 rc=0
+RUN B3_full_vs_noform_redfull_run09
+OK B3_full_vs_noform_redfull_run09 rc=0
+RUN B3_full_vs_noform_redfull_run10
+OK B3_full_vs_noform_redfull_run10 rc=0
+RUN B3_full_vs_noform_redfull_run11
+OK B3_full_vs_noform_redfull_run11 rc=0
+RUN B3_full_vs_noform_redfull_run12
+OK B3_full_vs_noform_redfull_run12 rc=0
+RUN B3_full_vs_noform_redfull_run13
+OK B3_full_vs_noform_redfull_run13 rc=0
+RUN B3_full_vs_noform_redfull_run14
+OK B3_full_vs_noform_redfull_run14 rc=0
+RUN B3_full_vs_noform_redfull_run15
+OK B3_full_vs_noform_redfull_run15 rc=0
+RUN B3_full_vs_noform_redfull_run16
+OK B3_full_vs_noform_redfull_run16 rc=0
+RUN B3s_full_vs_noform_bluefull_run01
+OK B3s_full_vs_noform_bluefull_run01 rc=0
+RUN B3s_full_vs_noform_bluefull_run02
+OK B3s_full_vs_noform_bluefull_run02 rc=0
+RUN B3s_full_vs_noform_bluefull_run03
+OK B3s_full_vs_noform_bluefull_run03 rc=0
+RUN B3s_full_vs_noform_bluefull_run04
+OK B3s_full_vs_noform_bluefull_run04 rc=0
+RUN B3s_full_vs_noform_bluefull_run05
+OK B3s_full_vs_noform_bluefull_run05 rc=0
+RUN B3s_full_vs_noform_bluefull_run06
+OK B3s_full_vs_noform_bluefull_run06 rc=0
+RUN B3s_full_vs_noform_bluefull_run07
+OK B3s_full_vs_noform_bluefull_run07 rc=0
+RUN B3s_full_vs_noform_bluefull_run08
+OK B3s_full_vs_noform_bluefull_run08 rc=0
+RUN B3s_full_vs_noform_bluefull_run09
+OK B3s_full_vs_noform_bluefull_run09 rc=0
+RUN B3s_full_vs_noform_bluefull_run10
+OK B3s_full_vs_noform_bluefull_run10 rc=0
+RUN B3s_full_vs_noform_bluefull_run11
+OK B3s_full_vs_noform_bluefull_run11 rc=0
+RUN B3s_full_vs_noform_bluefull_run12
+OK B3s_full_vs_noform_bluefull_run12 rc=0
+RUN B3s_full_vs_noform_bluefull_run13
+OK B3s_full_vs_noform_bluefull_run13 rc=0
+RUN B3s_full_vs_noform_bluefull_run14
+OK B3s_full_vs_noform_bluefull_run14 rc=0
+RUN B3s_full_vs_noform_bluefull_run15
+OK B3s_full_vs_noform_bluefull_run15 rc=0
+RUN B3s_full_vs_noform_bluefull_run16
+OK B3s_full_vs_noform_bluefull_run16 rc=0
+RUN B4_full_vs_norescue_redfull_run01
+OK B4_full_vs_norescue_redfull_run01 rc=0
+RUN B4_full_vs_norescue_redfull_run02
+OK B4_full_vs_norescue_redfull_run02 rc=0
+RUN B4_full_vs_norescue_redfull_run03
+OK B4_full_vs_norescue_redfull_run03 rc=0
+RUN B4_full_vs_norescue_redfull_run04
+OK B4_full_vs_norescue_redfull_run04 rc=0
+RUN B4_full_vs_norescue_redfull_run05
+OK B4_full_vs_norescue_redfull_run05 rc=0
+RUN B4_full_vs_norescue_redfull_run06
+OK B4_full_vs_norescue_redfull_run06 rc=0
+RUN B4_full_vs_norescue_redfull_run07
+OK B4_full_vs_norescue_redfull_run07 rc=0
+RUN B4_full_vs_norescue_redfull_run08
+OK B4_full_vs_norescue_redfull_run08 rc=0
+RUN B4_full_vs_norescue_redfull_run09
+OK B4_full_vs_norescue_redfull_run09 rc=0
+RUN B4_full_vs_norescue_redfull_run10
+OK B4_full_vs_norescue_redfull_run10 rc=0
+RUN B4_full_vs_norescue_redfull_run11
+OK B4_full_vs_norescue_redfull_run11 rc=0
+RUN B4_full_vs_norescue_redfull_run12
+OK B4_full_vs_norescue_redfull_run12 rc=0
+RUN B4_full_vs_norescue_redfull_run13
+OK B4_full_vs_norescue_redfull_run13 rc=0
+RUN B4_full_vs_norescue_redfull_run14
+OK B4_full_vs_norescue_redfull_run14 rc=0
+RUN B4_full_vs_norescue_redfull_run15
+OK B4_full_vs_norescue_redfull_run15 rc=0
+RUN B4_full_vs_norescue_redfull_run16
+OK B4_full_vs_norescue_redfull_run16 rc=0
+RUN B4s_full_vs_norescue_bluefull_run01
+OK B4s_full_vs_norescue_bluefull_run01 rc=0
+RUN B4s_full_vs_norescue_bluefull_run02
+OK B4s_full_vs_norescue_bluefull_run02 rc=0
+RUN B4s_full_vs_norescue_bluefull_run03
+OK B4s_full_vs_norescue_bluefull_run03 rc=0
+RUN B4s_full_vs_norescue_bluefull_run04
+OK B4s_full_vs_norescue_bluefull_run04 rc=0
+RUN B4s_full_vs_norescue_bluefull_run05
+OK B4s_full_vs_norescue_bluefull_run05 rc=0
+RUN B4s_full_vs_norescue_bluefull_run06
+OK B4s_full_vs_norescue_bluefull_run06 rc=0
+RUN B4s_full_vs_norescue_bluefull_run07
+OK B4s_full_vs_norescue_bluefull_run07 rc=0
+RUN B4s_full_vs_norescue_bluefull_run08
+OK B4s_full_vs_norescue_bluefull_run08 rc=0
+RUN B4s_full_vs_norescue_bluefull_run09
+OK B4s_full_vs_norescue_bluefull_run09 rc=0
+RUN B4s_full_vs_norescue_bluefull_run10
+OK B4s_full_vs_norescue_bluefull_run10 rc=0
+RUN B4s_full_vs_norescue_bluefull_run11
+OK B4s_full_vs_norescue_bluefull_run11 rc=0
+RUN B4s_full_vs_norescue_bluefull_run12
+OK B4s_full_vs_norescue_bluefull_run12 rc=0
+RUN B4s_full_vs_norescue_bluefull_run13
+OK B4s_full_vs_norescue_bluefull_run13 rc=0
+RUN B4s_full_vs_norescue_bluefull_run14
+OK B4s_full_vs_norescue_bluefull_run14 rc=0
+RUN B4s_full_vs_norescue_bluefull_run15
+OK B4s_full_vs_norescue_bluefull_run15 rc=0
+RUN B4s_full_vs_norescue_bluefull_run16
+OK B4s_full_vs_norescue_bluefull_run16 rc=0
+RUN C1_proposed_vs_uniform_run01
+OK C1_proposed_vs_uniform_run01 rc=0
+RUN C1_proposed_vs_uniform_run02
+OK C1_proposed_vs_uniform_run02 rc=0
+RUN C1_proposed_vs_uniform_run03
+OK C1_proposed_vs_uniform_run03 rc=0
+RUN C1_proposed_vs_uniform_run04
+OK C1_proposed_vs_uniform_run04 rc=0
+RUN C1_proposed_vs_uniform_run05
+OK C1_proposed_vs_uniform_run05 rc=0
+RUN C1_proposed_vs_uniform_run06
+OK C1_proposed_vs_uniform_run06 rc=0
+RUN C1_proposed_vs_uniform_run07
+OK C1_proposed_vs_uniform_run07 rc=0
+RUN C1_proposed_vs_uniform_run08
+OK C1_proposed_vs_uniform_run08 rc=0
+RUN C1_proposed_vs_uniform_run09
+OK C1_proposed_vs_uniform_run09 rc=0
+RUN C1_proposed_vs_uniform_run10
+OK C1_proposed_vs_uniform_run10 rc=0
+RUN C1_proposed_vs_uniform_run11
+OK C1_proposed_vs_uniform_run11 rc=0
+RUN C1_proposed_vs_uniform_run12
+OK C1_proposed_vs_uniform_run12 rc=0
+RUN C1_proposed_vs_uniform_run13
+OK C1_proposed_vs_uniform_run13 rc=0
+RUN C1_proposed_vs_uniform_run14
+OK C1_proposed_vs_uniform_run14 rc=0
+RUN C1_proposed_vs_uniform_run15
+OK C1_proposed_vs_uniform_run15 rc=0
+RUN C1_proposed_vs_uniform_run16
+OK C1_proposed_vs_uniform_run16 rc=0
+RUN C1s_uniform_vs_proposed_run01
+OK C1s_uniform_vs_proposed_run01 rc=0
+RUN C1s_uniform_vs_proposed_run02
+OK C1s_uniform_vs_proposed_run02 rc=0
+RUN C1s_uniform_vs_proposed_run03
+OK C1s_uniform_vs_proposed_run03 rc=0
+RUN C1s_uniform_vs_proposed_run04
+OK C1s_uniform_vs_proposed_run04 rc=0
+RUN C1s_uniform_vs_proposed_run05
+OK C1s_uniform_vs_proposed_run05 rc=0
+RUN C1s_uniform_vs_proposed_run06
+OK C1s_uniform_vs_proposed_run06 rc=0
+RUN C1s_uniform_vs_proposed_run07
+OK C1s_uniform_vs_proposed_run07 rc=0
+RUN C1s_uniform_vs_proposed_run08
+OK C1s_uniform_vs_proposed_run08 rc=0
+RUN C1s_uniform_vs_proposed_run09
+OK C1s_uniform_vs_proposed_run09 rc=0
+RUN C1s_uniform_vs_proposed_run10
+OK C1s_uniform_vs_proposed_run10 rc=0
+RUN C1s_uniform_vs_proposed_run11
+OK C1s_uniform_vs_proposed_run11 rc=0
+RUN C1s_uniform_vs_proposed_run12
+OK C1s_uniform_vs_proposed_run12 rc=0
+RUN C1s_uniform_vs_proposed_run13
+OK C1s_uniform_vs_proposed_run13 rc=0
+RUN C1s_uniform_vs_proposed_run14
+OK C1s_uniform_vs_proposed_run14 rc=0
+RUN C1s_uniform_vs_proposed_run15
+OK C1s_uniform_vs_proposed_run15 rc=0
+RUN C1s_uniform_vs_proposed_run16
+OK C1s_uniform_vs_proposed_run16 rc=0
+RUN C2_proposed_vs_nearest_run01
+OK C2_proposed_vs_nearest_run01 rc=0
+RUN C2_proposed_vs_nearest_run02
+OK C2_proposed_vs_nearest_run02 rc=0
+RUN C2_proposed_vs_nearest_run03
+OK C2_proposed_vs_nearest_run03 rc=0
+RUN C2_proposed_vs_nearest_run04
+OK C2_proposed_vs_nearest_run04 rc=0
+RUN C2_proposed_vs_nearest_run05
+OK C2_proposed_vs_nearest_run05 rc=0
+RUN C2_proposed_vs_nearest_run06
+OK C2_proposed_vs_nearest_run06 rc=0
+RUN C2_proposed_vs_nearest_run07
+OK C2_proposed_vs_nearest_run07 rc=0
+RUN C2_proposed_vs_nearest_run08
+OK C2_proposed_vs_nearest_run08 rc=0
+RUN C2_proposed_vs_nearest_run09
+OK C2_proposed_vs_nearest_run09 rc=0
+RUN C2_proposed_vs_nearest_run10
+OK C2_proposed_vs_nearest_run10 rc=0
+RUN C2_proposed_vs_nearest_run11
+OK C2_proposed_vs_nearest_run11 rc=0
+RUN C2_proposed_vs_nearest_run12
+OK C2_proposed_vs_nearest_run12 rc=0
+RUN C2_proposed_vs_nearest_run13
+OK C2_proposed_vs_nearest_run13 rc=0
+RUN C2_proposed_vs_nearest_run14
+OK C2_proposed_vs_nearest_run14 rc=0
+RUN C2_proposed_vs_nearest_run15
+OK C2_proposed_vs_nearest_run15 rc=0
+RUN C2_proposed_vs_nearest_run16
+OK C2_proposed_vs_nearest_run16 rc=0
+RUN C2s_nearest_vs_proposed_run01
+OK C2s_nearest_vs_proposed_run01 rc=0
+RUN C2s_nearest_vs_proposed_run02
+OK C2s_nearest_vs_proposed_run02 rc=0
+RUN C2s_nearest_vs_proposed_run03
+OK C2s_nearest_vs_proposed_run03 rc=0
+RUN C2s_nearest_vs_proposed_run04
+OK C2s_nearest_vs_proposed_run04 rc=0
+RUN C2s_nearest_vs_proposed_run05
+OK C2s_nearest_vs_proposed_run05 rc=0
+RUN C2s_nearest_vs_proposed_run06
+OK C2s_nearest_vs_proposed_run06 rc=0
+RUN C2s_nearest_vs_proposed_run07
+OK C2s_nearest_vs_proposed_run07 rc=0
+RUN C2s_nearest_vs_proposed_run08
+OK C2s_nearest_vs_proposed_run08 rc=0
+RUN C2s_nearest_vs_proposed_run09
+OK C2s_nearest_vs_proposed_run09 rc=0
+RUN C2s_nearest_vs_proposed_run10
+OK C2s_nearest_vs_proposed_run10 rc=0
+RUN C2s_nearest_vs_proposed_run11
+OK C2s_nearest_vs_proposed_run11 rc=0
+RUN C2s_nearest_vs_proposed_run12
+OK C2s_nearest_vs_proposed_run12 rc=0
+RUN C2s_nearest_vs_proposed_run13
+OK C2s_nearest_vs_proposed_run13 rc=0
+RUN C2s_nearest_vs_proposed_run14
+OK C2s_nearest_vs_proposed_run14 rc=0
+RUN C2s_nearest_vs_proposed_run15
+OK C2s_nearest_vs_proposed_run15 rc=0
+RUN C2s_nearest_vs_proposed_run16
+OK C2s_nearest_vs_proposed_run16 rc=0
+RUN D1_gate_vs_nogate_run01
+OK D1_gate_vs_nogate_run01 rc=0
+RUN D1_gate_vs_nogate_run02
+OK D1_gate_vs_nogate_run02 rc=0
+RUN D1_gate_vs_nogate_run03
+OK D1_gate_vs_nogate_run03 rc=0
+RUN D1_gate_vs_nogate_run04
+OK D1_gate_vs_nogate_run04 rc=0
+RUN D1_gate_vs_nogate_run05
+OK D1_gate_vs_nogate_run05 rc=0
+RUN D1_gate_vs_nogate_run06
+OK D1_gate_vs_nogate_run06 rc=0
+RUN D1_gate_vs_nogate_run07
+OK D1_gate_vs_nogate_run07 rc=0
+RUN D1_gate_vs_nogate_run08
+OK D1_gate_vs_nogate_run08 rc=0
+RUN D1_gate_vs_nogate_run09
+OK D1_gate_vs_nogate_run09 rc=0
+RUN D1_gate_vs_nogate_run10
+OK D1_gate_vs_nogate_run10 rc=0
+RUN D1_gate_vs_nogate_run11
+OK D1_gate_vs_nogate_run11 rc=0
+RUN D1_gate_vs_nogate_run12
+OK D1_gate_vs_nogate_run12 rc=0
+RUN D1_gate_vs_nogate_run13
+OK D1_gate_vs_nogate_run13 rc=0
+RUN D1_gate_vs_nogate_run14
+OK D1_gate_vs_nogate_run14 rc=0
+RUN D1_gate_vs_nogate_run15
+OK D1_gate_vs_nogate_run15 rc=0
+RUN D1_gate_vs_nogate_run16
+OK D1_gate_vs_nogate_run16 rc=0
+RUN D1s_nogate_vs_gate_run01
+OK D1s_nogate_vs_gate_run01 rc=0
+RUN D1s_nogate_vs_gate_run02
+OK D1s_nogate_vs_gate_run02 rc=0
+RUN D1s_nogate_vs_gate_run03
+OK D1s_nogate_vs_gate_run03 rc=0
+RUN D1s_nogate_vs_gate_run04
+OK D1s_nogate_vs_gate_run04 rc=0
+RUN D1s_nogate_vs_gate_run05
+OK D1s_nogate_vs_gate_run05 rc=0
+RUN D1s_nogate_vs_gate_run06
+OK D1s_nogate_vs_gate_run06 rc=0
+RUN D1s_nogate_vs_gate_run07
+OK D1s_nogate_vs_gate_run07 rc=0
+RUN D1s_nogate_vs_gate_run08
+OK D1s_nogate_vs_gate_run08 rc=0
+RUN D1s_nogate_vs_gate_run09
+OK D1s_nogate_vs_gate_run09 rc=0
+RUN D1s_nogate_vs_gate_run10
+OK D1s_nogate_vs_gate_run10 rc=0
+RUN D1s_nogate_vs_gate_run11
+OK D1s_nogate_vs_gate_run11 rc=0
+RUN D1s_nogate_vs_gate_run12
+OK D1s_nogate_vs_gate_run12 rc=0
+RUN D1s_nogate_vs_gate_run13
+OK D1s_nogate_vs_gate_run13 rc=0
+RUN D1s_nogate_vs_gate_run14
+OK D1s_nogate_vs_gate_run14 rc=0
+RUN D1s_nogate_vs_gate_run15
+OK D1s_nogate_vs_gate_run15 rc=0
+RUN D1s_nogate_vs_gate_run16
+OK D1s_nogate_vs_gate_run16 rc=0
+RUN E1_proposed_vs_legacy_run01
+OK E1_proposed_vs_legacy_run01 rc=0
+RUN E1_proposed_vs_legacy_run02
+OK E1_proposed_vs_legacy_run02 rc=0
+RUN E1_proposed_vs_legacy_run03
+OK E1_proposed_vs_legacy_run03 rc=0
+RUN E1_proposed_vs_legacy_run04
+OK E1_proposed_vs_legacy_run04 rc=0
+RUN E1_proposed_vs_legacy_run05
+OK E1_proposed_vs_legacy_run05 rc=0
+RUN E1_proposed_vs_legacy_run06
+OK E1_proposed_vs_legacy_run06 rc=0
+RUN E1_proposed_vs_legacy_run07
+OK E1_proposed_vs_legacy_run07 rc=0
+RUN E1_proposed_vs_legacy_run08
+OK E1_proposed_vs_legacy_run08 rc=0
+RUN E1_proposed_vs_legacy_run09
+OK E1_proposed_vs_legacy_run09 rc=0
+RUN E1_proposed_vs_legacy_run10
+OK E1_proposed_vs_legacy_run10 rc=0
+RUN E1_proposed_vs_legacy_run11
+OK E1_proposed_vs_legacy_run11 rc=0
+RUN E1_proposed_vs_legacy_run12
+OK E1_proposed_vs_legacy_run12 rc=0
+RUN E1_proposed_vs_legacy_run13
+OK E1_proposed_vs_legacy_run13 rc=0
+RUN E1_proposed_vs_legacy_run14
+OK E1_proposed_vs_legacy_run14 rc=0
+RUN E1_proposed_vs_legacy_run15
+OK E1_proposed_vs_legacy_run15 rc=0
+RUN E1_proposed_vs_legacy_run16
+OK E1_proposed_vs_legacy_run16 rc=0
+RUN E1s_legacy_vs_proposed_run01
+OK E1s_legacy_vs_proposed_run01 rc=0
+RUN E1s_legacy_vs_proposed_run02
+OK E1s_legacy_vs_proposed_run02 rc=0
+RUN E1s_legacy_vs_proposed_run03
+OK E1s_legacy_vs_proposed_run03 rc=0
+RUN E1s_legacy_vs_proposed_run04
+OK E1s_legacy_vs_proposed_run04 rc=0
+RUN E1s_legacy_vs_proposed_run05
+OK E1s_legacy_vs_proposed_run05 rc=0
+RUN E1s_legacy_vs_proposed_run06
+OK E1s_legacy_vs_proposed_run06 rc=0
+RUN E1s_legacy_vs_proposed_run07
+OK E1s_legacy_vs_proposed_run07 rc=0
+RUN E1s_legacy_vs_proposed_run08
+OK E1s_legacy_vs_proposed_run08 rc=0
+RUN E1s_legacy_vs_proposed_run09
+OK E1s_legacy_vs_proposed_run09 rc=0
+RUN E1s_legacy_vs_proposed_run10
+OK E1s_legacy_vs_proposed_run10 rc=0
+RUN E1s_legacy_vs_proposed_run11
+OK E1s_legacy_vs_proposed_run11 rc=0
+RUN E1s_legacy_vs_proposed_run12
+OK E1s_legacy_vs_proposed_run12 rc=0
+RUN E1s_legacy_vs_proposed_run13
+OK E1s_legacy_vs_proposed_run13 rc=0
+RUN E1s_legacy_vs_proposed_run14
+OK E1s_legacy_vs_proposed_run14 rc=0
+RUN E1s_legacy_vs_proposed_run15
+OK E1s_legacy_vs_proposed_run15 rc=0
+RUN E1s_legacy_vs_proposed_run16
+OK E1s_legacy_vs_proposed_run16 rc=0
+RUN F1_delay100_run01
+OK F1_delay100_run01 rc=0
+RUN F1_delay100_run02
+OK F1_delay100_run02 rc=0
+RUN F1_delay100_run03
+OK F1_delay100_run03 rc=0
+RUN F1_delay100_run04
+OK F1_delay100_run04 rc=0
+RUN F1_delay100_run05
+OK F1_delay100_run05 rc=0
+RUN F1_delay100_run06
+OK F1_delay100_run06 rc=0
+RUN F1_delay100_run07
+OK F1_delay100_run07 rc=0
+RUN F1_delay100_run08
+OK F1_delay100_run08 rc=0
+RUN F1_delay100_run09
+OK F1_delay100_run09 rc=0
+RUN F1_delay100_run10
+OK F1_delay100_run10 rc=0
+RUN F1_delay100_run11
+OK F1_delay100_run11 rc=0
+RUN F1_delay100_run12
+OK F1_delay100_run12 rc=0
+RUN F1_delay100_run13
+OK F1_delay100_run13 rc=0
+RUN F1_delay100_run14
+OK F1_delay100_run14 rc=0
+RUN F1_delay100_run15
+OK F1_delay100_run15 rc=0
+RUN F1_delay100_run16
+OK F1_delay100_run16 rc=0
+RUN F2_delay400_run01
+OK F2_delay400_run01 rc=0
+RUN F2_delay400_run02
+OK F2_delay400_run02 rc=0
+RUN F2_delay400_run03
+OK F2_delay400_run03 rc=0
+RUN F2_delay400_run04
+OK F2_delay400_run04 rc=0
+RUN F2_delay400_run05
+OK F2_delay400_run05 rc=0
+RUN F2_delay400_run06
+OK F2_delay400_run06 rc=0
+RUN F2_delay400_run07
+OK F2_delay400_run07 rc=0
+RUN F2_delay400_run08
+OK F2_delay400_run08 rc=0
+RUN F2_delay400_run09
+OK F2_delay400_run09 rc=0
+RUN F2_delay400_run10
+OK F2_delay400_run10 rc=0
+RUN F2_delay400_run11
+OK F2_delay400_run11 rc=0
+RUN F2_delay400_run12
+OK F2_delay400_run12 rc=0
+RUN F2_delay400_run13
+OK F2_delay400_run13 rc=0
+RUN F2_delay400_run14
+OK F2_delay400_run14 rc=0
+RUN F2_delay400_run15
+OK F2_delay400_run15 rc=0
+RUN F2_delay400_run16
+OK F2_delay400_run16 rc=0
+RUN F3_delay100_loss30_run01
+OK F3_delay100_loss30_run01 rc=0
+RUN F3_delay100_loss30_run02
+OK F3_delay100_loss30_run02 rc=0
+RUN F3_delay100_loss30_run03
+OK F3_delay100_loss30_run03 rc=0
+RUN F3_delay100_loss30_run04
+OK F3_delay100_loss30_run04 rc=0
+RUN F3_delay100_loss30_run05
+OK F3_delay100_loss30_run05 rc=0
+RUN F3_delay100_loss30_run06
+OK F3_delay100_loss30_run06 rc=0
+RUN F3_delay100_loss30_run07
+OK F3_delay100_loss30_run07 rc=0
+RUN F3_delay100_loss30_run08
+OK F3_delay100_loss30_run08 rc=0
+RUN F3_delay100_loss30_run09
+OK F3_delay100_loss30_run09 rc=0
+RUN F3_delay100_loss30_run10
+OK F3_delay100_loss30_run10 rc=0
+RUN F3_delay100_loss30_run11
+OK F3_delay100_loss30_run11 rc=0
+RUN F3_delay100_loss30_run12
+OK F3_delay100_loss30_run12 rc=0
+RUN F3_delay100_loss30_run13
+OK F3_delay100_loss30_run13 rc=0
+RUN F3_delay100_loss30_run14
+OK F3_delay100_loss30_run14 rc=0
+RUN F3_delay100_loss30_run15
+OK F3_delay100_loss30_run15 rc=0
+RUN F3_delay100_loss30_run16
+OK F3_delay100_loss30_run16 rc=0
+RUN F4_delay400_proposed_vs_uniform_run01
+OK F4_delay400_proposed_vs_uniform_run01 rc=0
+RUN F4_delay400_proposed_vs_uniform_run02
+OK F4_delay400_proposed_vs_uniform_run02 rc=0
+RUN F4_delay400_proposed_vs_uniform_run03
+OK F4_delay400_proposed_vs_uniform_run03 rc=0
+RUN F4_delay400_proposed_vs_uniform_run04
+OK F4_delay400_proposed_vs_uniform_run04 rc=0
+RUN F4_delay400_proposed_vs_uniform_run05
+OK F4_delay400_proposed_vs_uniform_run05 rc=0
+RUN F4_delay400_proposed_vs_uniform_run06
+OK F4_delay400_proposed_vs_uniform_run06 rc=0
+RUN F4_delay400_proposed_vs_uniform_run07
+OK F4_delay400_proposed_vs_uniform_run07 rc=0
+RUN F4_delay400_proposed_vs_uniform_run08
+OK F4_delay400_proposed_vs_uniform_run08 rc=0
+RUN F4_delay400_proposed_vs_uniform_run09
+OK F4_delay400_proposed_vs_uniform_run09 rc=0
+RUN F4_delay400_proposed_vs_uniform_run10
+OK F4_delay400_proposed_vs_uniform_run10 rc=0
+RUN F4_delay400_proposed_vs_uniform_run11
+OK F4_delay400_proposed_vs_uniform_run11 rc=0
+RUN F4_delay400_proposed_vs_uniform_run12
+OK F4_delay400_proposed_vs_uniform_run12 rc=0
+RUN F4_delay400_proposed_vs_uniform_run13
+OK F4_delay400_proposed_vs_uniform_run13 rc=0
+RUN F4_delay400_proposed_vs_uniform_run14
+OK F4_delay400_proposed_vs_uniform_run14 rc=0
+RUN F4_delay400_proposed_vs_uniform_run15
+OK F4_delay400_proposed_vs_uniform_run15 rc=0
+RUN F4_delay400_proposed_vs_uniform_run16
+OK F4_delay400_proposed_vs_uniform_run16 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run01
+OK F4s_delay400_uniform_vs_proposed_run01 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run02
+OK F4s_delay400_uniform_vs_proposed_run02 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run03
+OK F4s_delay400_uniform_vs_proposed_run03 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run04
+OK F4s_delay400_uniform_vs_proposed_run04 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run05
+OK F4s_delay400_uniform_vs_proposed_run05 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run06
+OK F4s_delay400_uniform_vs_proposed_run06 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run07
+OK F4s_delay400_uniform_vs_proposed_run07 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run08
+OK F4s_delay400_uniform_vs_proposed_run08 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run09
+OK F4s_delay400_uniform_vs_proposed_run09 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run10
+OK F4s_delay400_uniform_vs_proposed_run10 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run11
+OK F4s_delay400_uniform_vs_proposed_run11 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run12
+OK F4s_delay400_uniform_vs_proposed_run12 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run13
+OK F4s_delay400_uniform_vs_proposed_run13 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run14
+OK F4s_delay400_uniform_vs_proposed_run14 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run15
+OK F4s_delay400_uniform_vs_proposed_run15 rc=0
+RUN F4s_delay400_uniform_vs_proposed_run16
+OK F4s_delay400_uniform_vs_proposed_run16 rc=0
+RUN G2_res640_run01
+OK G2_res640_run01 rc=0
+RUN G2_res640_run02
+OK G2_res640_run02 rc=0
+RUN G2_res640_run03
+OK G2_res640_run03 rc=0
+RUN G2_res640_run04
+OK G2_res640_run04 rc=0
+RUN G2_res640_run05
+OK G2_res640_run05 rc=0
+RUN G2_res640_run06
+OK G2_res640_run06 rc=0
+RUN G2_res640_run07
+OK G2_res640_run07 rc=0
+RUN G2_res640_run08
+OK G2_res640_run08 rc=0
+RUN G2_res640_run09
+OK G2_res640_run09 rc=0
+RUN G2_res640_run10
+OK G2_res640_run10 rc=0
+RUN G2_res640_run11
+OK G2_res640_run11 rc=0
+RUN G2_res640_run12
+OK G2_res640_run12 rc=0
+RUN G3_stall40_run01
+OK G3_stall40_run01 rc=0
+RUN G3_stall40_run02
+OK G3_stall40_run02 rc=0
+RUN G3_stall40_run03
+OK G3_stall40_run03 rc=0
+RUN G3_stall40_run04
+OK G3_stall40_run04 rc=0
+RUN G3_stall40_run05
+OK G3_stall40_run05 rc=0
+RUN G3_stall40_run06
+OK G3_stall40_run06 rc=0
+RUN G3_stall40_run07
+OK G3_stall40_run07 rc=0
+RUN G3_stall40_run08
+OK G3_stall40_run08 rc=0
+RUN G3_stall40_run09
+OK G3_stall40_run09 rc=0
+RUN G3_stall40_run10
+OK G3_stall40_run10 rc=0
+RUN G3_stall40_run11
+OK G3_stall40_run11 rc=0
+RUN G3_stall40_run12
+OK G3_stall40_run12 rc=0
+RUN H1_fov_red_full_run01
+OK H1_fov_red_full_run01 rc=0
+RUN H1_fov_red_full_run02
+OK H1_fov_red_full_run02 rc=0
+RUN H1_fov_red_full_run03
+OK H1_fov_red_full_run03 rc=0
+RUN H1_fov_red_full_run04
+OK H1_fov_red_full_run04 rc=0
+RUN H1_fov_red_full_run05
+OK H1_fov_red_full_run05 rc=0
+RUN H1_fov_red_full_run06
+OK H1_fov_red_full_run06 rc=0
+RUN H1_fov_red_full_run07
+OK H1_fov_red_full_run07 rc=0
+RUN H1_fov_red_full_run08
+OK H1_fov_red_full_run08 rc=0
+RUN H1_fov_red_full_run09
+OK H1_fov_red_full_run09 rc=0
+RUN H1_fov_red_full_run10
+OK H1_fov_red_full_run10 rc=0
+RUN H1_fov_red_full_run11
+OK H1_fov_red_full_run11 rc=0
+RUN H1_fov_red_full_run12
+OK H1_fov_red_full_run12 rc=0
+RUN H1_fov_red_full_run13
+OK H1_fov_red_full_run13 rc=0
+RUN H1_fov_red_full_run14
+OK H1_fov_red_full_run14 rc=0
+RUN H1_fov_red_full_run15
+OK H1_fov_red_full_run15 rc=0
+RUN H1_fov_red_full_run16
+OK H1_fov_red_full_run16 rc=0
+RUN H2_fov_blue_full_run01
+OK H2_fov_blue_full_run01 rc=0
+RUN H2_fov_blue_full_run02
+OK H2_fov_blue_full_run02 rc=0
+RUN H2_fov_blue_full_run03
+OK H2_fov_blue_full_run03 rc=0
+RUN H2_fov_blue_full_run04
+OK H2_fov_blue_full_run04 rc=0
+RUN H2_fov_blue_full_run05
+OK H2_fov_blue_full_run05 rc=0
+RUN H2_fov_blue_full_run06
+OK H2_fov_blue_full_run06 rc=0
+RUN H2_fov_blue_full_run07
+OK H2_fov_blue_full_run07 rc=0
+RUN H2_fov_blue_full_run08
+OK H2_fov_blue_full_run08 rc=0
+RUN H2_fov_blue_full_run09
+OK H2_fov_blue_full_run09 rc=0
+RUN H2_fov_blue_full_run10
+OK H2_fov_blue_full_run10 rc=0
+RUN H2_fov_blue_full_run11
+OK H2_fov_blue_full_run11 rc=0
+RUN H2_fov_blue_full_run12
+OK H2_fov_blue_full_run12 rc=0
+RUN H2_fov_blue_full_run13
+OK H2_fov_blue_full_run13 rc=0
+RUN H2_fov_blue_full_run14
+OK H2_fov_blue_full_run14 rc=0
+RUN H2_fov_blue_full_run15
+OK H2_fov_blue_full_run15 rc=0
+RUN H2_fov_blue_full_run16
+OK H2_fov_blue_full_run16 rc=0
+COMPLETE 2026-09-27T00:03:24+08:00

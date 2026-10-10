@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -O3 -DNDEBUG -static-libgcc -static-libstdc++ -s -shared -Wl,-soname,libsp_vision_sim.so -o /root/下载/lunwen/sim/godot/bin/linux-x86_64/libsp_vision_sim.so CMakeFiles/sp_vision_sim.dir/src/auto_aim_bridge.cpp.o CMakeFiles/sp_vision_sim.dir/src/register_types.cpp.o  -Wl,-rpath,"\$ORIGIN:\$ORIGIN/runtime" bin/libgodot-cpp.linux.template_debug.x86_64.a -ldl 

@@ -1,0 +1,3 @@
+exp_id,exp_name,run_index,run_id,mode_red,mode_blue,winner,coop_side,coop_side_won,sim_time,red_hits,blue_hits,red_shots,blue_shots,red_accuracy_pct,blue_accuracy_pct,overall_accuracy_pct,red_alive,blue_alive,fusion_assist_sum,fusion_valid_sum,rescue_events,log_coop_rescue,log_fire_coop_focus,log_fire_vision,log_fire_sensor,_path
+expC,red_solo_blue_coop,1,expC_red_solo_blue_coop_run01,,,,,,,,,,,,,,,,,,,0,0,0,0,/root/lunwen/sim/godot/logs/paper_results_20260803_154759/expC_red_solo_blue_coop/expC_red_solo_blue_coop_run01.json
+expD,red_coop_blue_solo,1,expD_red_coop_blue_solo_run01,,,,,,,,,,,,,,,,,,,0,0,0,0,/root/lunwen/sim/godot/logs/paper_results_20260803_154759/expD_red_coop_blue_solo/expD_red_coop_blue_solo_run01.json

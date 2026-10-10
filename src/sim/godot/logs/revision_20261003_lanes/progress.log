@@ -1,0 +1,14 @@
+OUT=/root/lunwen/sim/godot/logs/revision_20261003_lanes N=12
+A3_red_full_run01 ok
+A4_blue_full_run01 ok
+A3_red_full_run02 ok
+A4_blue_full_run02 ok
+A3_red_full_run03 fail
+A4_blue_full_run03 fail
+A3_red_full_run04 fail
+A4_blue_full_run04 fail
+A3_red_full_run05 fail
+A4_blue_full_run05 fail
+A3_red_full_run06 fail
+A4_blue_full_run06 fail
+A3_red_full_run07 fail

@@ -1,0 +1,5 @@
+group,n,treatment_side,treatment_wins,win_rate,win_lo,win_hi,binom_p_vs_half,duration_mean_s,duration_lo,duration_hi,pos_err_mean_m,pos_err_lo,pos_err_hi,aim_err_mean_deg,aim_err_lo,aim_err_hi,assist_per_robot_min,focus_fire_per_robot_min,rescue_per_robot_min,process_ms_p50,process_ms_p95,queue_p95,dropped_mean,ghost_rate,all_tracked_t_red,holm_p
+A3,24,red,14,0.5833,0.3883,0.7553,0.5413,68.3,56.8,81.21,1.238,1.004,1.513,30.59,25.76,35.51,22.636,6.341,4.086,30.07,31.85,0.0,0.0,0.269,22.22,
+A4,24,blue,19,0.7917,0.5953,0.9076,0.0066,83.13,66.3,101.34,1.084,0.983,1.188,33.43,28.39,38.41,18.189,6.343,2.714,30.04,31.73,0.0,0.0,0.238,,
+H1,16,red,11,0.6875,0.444,0.8584,0.2101,85.01,66.82,104.62,1.774,1.468,2.111,31.64,26.44,36.67,24.758,6.078,3.006,29.99,31.55,0.0,0.0,0.419,24.45,
+H2,16,blue,14,0.875,0.6398,0.965,0.0042,93.74,71.83,118.39,1.232,1.072,1.407,33.68,27.28,40.92,14.934,5.957,2.155,29.98,31.72,0.0,0.0,0.298,,

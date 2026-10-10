@@ -1,0 +1,16 @@
+{
+  "error": "no METRICS_JSON in log",
+  "log_tail": "true shoot_flag=true\nHIT robot=3 total_hits=3 victim=0\nEVADE id=0 HP 2/5 attacker=3 → (-6.7, 0.056994, -2.102629)\n[2026-07-30 09:48:07.761] [warning] [Tracker] Large dt: 4.068s\n[2026-07-30 09:48:12.422] [warning] [Tracker] Large dt: 4.667s\n[2026-07-30 09:48:14.717] [warning] [Tracker] Large dt: 4.600s\nFIRE VISION id=3 蓝1 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\nHIT robot=3 total_hits=4 victim=0\nEVADE id=0 HP 1/5 attacker=3 → (-6.548289, 0.056994, -0.296169)\nFIRE VISION id=1 红2 reason=vision_shoot armor=2 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\n[2026-07-30 09:48:33.973] [warning] [Tracker] Large dt: 4.934s\n[2026-07-30 09:48:36.410] [warning] [Tracker] Large dt: 4.158s\n[2026-07-30 09:48:37.979] [warning] [Tracker] Large dt: 4.004s\n[2026-07-30 09:48:40.233] [warning] [Tracker] Large dt: 4.224s\nFIRE VISION id=3 蓝1 reason=vision_shoot armor=1 age=0.07 since_see=0.07 tracker=detecting control=true shoot_flag=true\nHIT robot=3 total_hits=5 victim=0\nEVADE id=0 HP 0/5 attacker=3 → (-6.7, 0.056994, 3.595582)\nOUT id=0 team=0 (红1) wreck blocks\n[2026-07-30 09:48:47.009] [warning] [Tracker] Large dt: 4.654s\nFIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=0.02 since_see=0.02 tracker=detecting control=true shoot_flag=true\n[2026-07-30 09:48:49.732] [warning] [Tracker] Large dt: 4.661s\n[2026-07-30 09:48:52.594] [warning] [Tracker] Large dt: 4.455s\n[2026-07-30 09:48:53.873] [warning] [Tracker] Large dt: 4.145s\n[2026-07-30 09:48:56.685] [warning] [Tracker] Large dt: 4.091s\n[2026-07-30 09:48:57.904] [warning] [Tracker] Large dt: 4.038s\nFIRE VISION id=4 蓝2 reason=vision_shoot armor=1 age=1.0 since_see=1.0 tracker=detecting control=true shoot_flag=true\nHIT robot=4 total_hits=2 victim=2\nEVADE id=2 HP 0/5 attacker=4 → (6.7, 0.05699, 5.236965)\nOUT id=2 team=0 (红3) wreck blocks\n[2026-07-30 09:49:01.033] [warning] [Tracker] Large dt: 4.344s\n[2026-07-30 09:49:07.407] [warning] [Tracker] Large dt: 3.704s\n",
+  "exp_id": "expA",
+  "exp_name": "solo_both",
+  "run_index": 5,
+  "run_id": "expA_solo_both_run05",
+  "log_coop_rescue": 0,
+  "log_fire_coop_focus": 0,
+  "log_fire_coop_rescue": 0,
+  "log_fire_coop_shared": 0,
+  "log_fire_vision": 31,
+  "log_fire_sensor": 2,
+  "log_out_count": 3,
+  "log_hit_count": 21
+}

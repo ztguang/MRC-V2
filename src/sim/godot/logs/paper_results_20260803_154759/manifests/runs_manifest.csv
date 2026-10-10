@@ -1,0 +1,3 @@
+exp_id,exp_name,run_index,run_id,json_path,log_path,cli_args,status,winner,sim_time,coop_side_won
+expC,red_solo_blue_coop,1,expC_red_solo_blue_coop_run01,/root/lunwen/sim/godot/logs/paper_results_20260803_154759/expC_red_solo_blue_coop/expC_red_solo_blue_coop_run01.json,/root/lunwen/sim/godot/logs/paper_results_20260803_154759/logs/expC_red_solo_blue_coop_run01.log,red solo blue coop,rc1,?,?,?
+expD,red_coop_blue_solo,1,expD_red_coop_blue_solo_run01,/root/lunwen/sim/godot/logs/paper_results_20260803_154759/expD_red_coop_blue_solo/expD_red_coop_blue_solo_run01.json,/root/lunwen/sim/godot/logs/paper_results_20260803_154759/logs/expD_red_coop_blue_solo_run01.log,red coop blue solo,rc1,?,?,?

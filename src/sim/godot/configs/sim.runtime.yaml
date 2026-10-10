@@ -1,0 +1,10 @@
+# 3v3 multi-robot runtime overrides (merged over sim.yaml).
+image_width: 320
+image_height: 240
+camera_fps: 1
+fov_degrees: 50
+min_confidence: 0.25
+auto_fire: true
+exposure_ms: 2.0
+gamma: 1.0
+bullet_speed: 10.0

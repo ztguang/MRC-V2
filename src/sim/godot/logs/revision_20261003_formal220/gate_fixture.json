@@ -1,0 +1,17 @@
+{
+  "rule": "written 1.5 m rule only; this does not call the engine",
+  "rows": [
+    {
+      "distance_m": 0.5,
+      "same_track": true
+    },
+    {
+      "distance_m": 1.5,
+      "same_track": true
+    },
+    {
+      "distance_m": 3.0,
+      "same_track": false
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+新批次 revision_20261003_formal220。每局 120 秒。
+第一类四种对阵各 20 局：W_redfull、W_bluefull、S_bothon、S_bothoff。
+第二类每个编号 10 局。L_fusion、L_focus、L_formation、L_rescue
+各为 5 局红方四项全开对蓝方只关该项，加 5 局交换出生侧。
+同一编号内种子为 1 到该编号的局数。胜或负都保留。崩溃只重试一次。
+不读取以前的结果目录，也不修改论文。

@@ -1,0 +1,3 @@
+group,n,coop_side_wins,coop_side_win_rate,expected_wins,expected_win_rate,sim_time_mean,hit_diff_coop_minus_solo_mean
+C redSOLO blueCOOP,10,10,1.000,10,1.000,36.24,13.50
+D redCOOP blueSOLO,10,9,0.900,9,0.900,34.21,12.90

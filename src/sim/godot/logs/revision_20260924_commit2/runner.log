@@ -1,0 +1,153 @@
+RUN W0_red_d0_run01
+OK W0_red_d0_run01
+SCORE 0/1
+RUN W0_red_d0_run02
+OK W0_red_d0_run02
+SCORE 1/2
+RUN W0_red_d0_run03
+OK W0_red_d0_run03
+SCORE 1/3
+RUN W0_red_d0_run04
+OK W0_red_d0_run04
+SCORE 2/4
+RUN W0_red_d0_run05
+OK W0_red_d0_run05
+SCORE 3/5
+RUN W0_red_d0_run06
+OK W0_red_d0_run06
+SCORE 3/6
+RUN W0_red_d0_run07
+OK W0_red_d0_run07
+SCORE 3/7
+RUN W0_red_d0_run08
+OK W0_red_d0_run08
+SCORE 4/8
+RUN W0_red_d0_run09
+OK W0_red_d0_run09
+SCORE 4/9
+RUN W0_red_d0_run10
+OK W0_red_d0_run10
+SCORE 5/10
+RUN W0_red_d0_run11
+OK W0_red_d0_run11
+SCORE 5/11
+RUN W0_red_d0_run12
+OK W0_red_d0_run12
+BEHIND 5/12
+STOP_LOSING
+SKIP W0_red_d0_run01
+RUN W1_blue_d0_run01
+OK W1_blue_d0_run01
+SCORE 6/13 W0=12 W1=1
+SKIP W0_red_d0_run02
+RUN W1_blue_d0_run02
+OK W1_blue_d0_run02
+SCORE 7/14 W0=12 W1=2
+SKIP W0_red_d0_run03
+RUN W1_blue_d0_run03
+OK W1_blue_d0_run03
+SCORE 7/15 W0=12 W1=3
+SKIP W0_red_d0_run04
+RUN W1_blue_d0_run04
+OK W1_blue_d0_run04
+SCORE 8/16 W0=12 W1=4
+SKIP W0_red_d0_run05
+RUN W1_blue_d0_run05
+OK W1_blue_d0_run05
+SCORE 9/17 W0=12 W1=5
+SKIP W0_red_d0_run06
+RUN W1_blue_d0_run06
+OK W1_blue_d0_run06
+SCORE 10/18 W0=12 W1=6
+SKIP W0_red_d0_run07
+RUN W1_blue_d0_run07
+OK W1_blue_d0_run07
+SCORE 11/19 W0=12 W1=7
+SKIP W0_red_d0_run08
+RUN W1_blue_d0_run08
+OK W1_blue_d0_run08
+SCORE 11/20 W0=12 W1=8
+SKIP W0_red_d0_run09
+RUN W1_blue_d0_run09
+OK W1_blue_d0_run09
+SCORE 11/21 W0=12 W1=9
+SKIP W0_red_d0_run10
+RUN W1_blue_d0_run10
+OK W1_blue_d0_run10
+SCORE 12/22 W0=12 W1=10
+SKIP W0_red_d0_run11
+RUN W1_blue_d0_run11
+OK W1_blue_d0_run11
+SCORE 12/23 W0=12 W1=11
+SKIP W0_red_d0_run12
+RUN W1_blue_d0_run12
+OK W1_blue_d0_run12
+SCORE 12/24 W0=12 W1=12
+RUN W0_red_d0_run13
+OK W0_red_d0_run13
+RUN W1_blue_d0_run13
+OK W1_blue_d0_run13
+SCORE 14/26 W0=13 W1=13
+RUN W0_red_d0_run14
+OK W0_red_d0_run14
+RUN W1_blue_d0_run14
+OK W1_blue_d0_run14
+SCORE 15/28 W0=14 W1=14
+RUN W0_red_d0_run15
+OK W0_red_d0_run15
+RUN W1_blue_d0_run15
+OK W1_blue_d0_run15
+SCORE 17/30 W0=15 W1=15
+RUN W0_red_d0_run16
+OK W0_red_d0_run16
+RUN W1_blue_d0_run16
+OK W1_blue_d0_run16
+SCORE 17/32 W0=16 W1=16
+RUN W2_both_d0_run01
+OK W2_both_d0_run01
+RUN W2_both_d0_run02
+OK W2_both_d0_run02
+RUN W2_both_d0_run03
+OK W2_both_d0_run03
+RUN W2_both_d0_run04
+OK W2_both_d0_run04
+RUN W2_both_d0_run05
+OK W2_both_d0_run05
+RUN W2_both_d0_run06
+OK W2_both_d0_run06
+RUN W2_both_d0_run07
+OK W2_both_d0_run07
+RUN W2_both_d0_run08
+OK W2_both_d0_run08
+RUN W2_both_d0_run09
+OK W2_both_d0_run09
+RUN W2_both_d0_run10
+OK W2_both_d0_run10
+RUN W2_both_d0_run11
+OK W2_both_d0_run11
+RUN W2_both_d0_run12
+OK W2_both_d0_run12
+RUN W3_both_d400_run01
+OK W3_both_d400_run01
+RUN W3_both_d400_run02
+OK W3_both_d400_run02
+RUN W3_both_d400_run03
+OK W3_both_d400_run03
+RUN W3_both_d400_run04
+OK W3_both_d400_run04
+RUN W3_both_d400_run05
+OK W3_both_d400_run05
+RUN W3_both_d400_run06
+OK W3_both_d400_run06
+RUN W3_both_d400_run07
+OK W3_both_d400_run07
+RUN W3_both_d400_run08
+OK W3_both_d400_run08
+RUN W3_both_d400_run09
+OK W3_both_d400_run09
+RUN W3_both_d400_run10
+OK W3_both_d400_run10
+RUN W3_both_d400_run11
+OK W3_both_d400_run11
+RUN W3_both_d400_run12
+OK W3_both_d400_run12

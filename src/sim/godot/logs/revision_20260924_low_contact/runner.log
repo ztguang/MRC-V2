@@ -1,0 +1,100 @@
+OUT=/root/lunwen/sim/godot/logs/revision_20260924
+RUN A1_both_off_run01
+OK A1_both_off_run01 rc=0
+RUN A1_both_off_run02
+OK A1_both_off_run02 rc=0
+RUN A1_both_off_run03
+OK A1_both_off_run03 rc=0
+RUN A1_both_off_run04
+OK A1_both_off_run04 rc=0
+RUN A1_both_off_run05
+OK A1_both_off_run05 rc=0
+RUN A1_both_off_run06
+OK A1_both_off_run06 rc=0
+RUN A1_both_off_run07
+OK A1_both_off_run07 rc=0
+RUN A1_both_off_run08
+OK A1_both_off_run08 rc=0
+RUN A1_both_off_run09
+OK A1_both_off_run09 rc=0
+RUN A1_both_off_run10
+OK A1_both_off_run10 rc=0
+RUN A1_both_off_run11
+OK A1_both_off_run11 rc=0
+RUN A1_both_off_run12
+OK A1_both_off_run12 rc=0
+RUN A1_both_off_run13
+OK A1_both_off_run13 rc=0
+RUN A1_both_off_run14
+OK A1_both_off_run14 rc=0
+RUN A1_both_off_run15
+OK A1_both_off_run15 rc=0
+RUN A1_both_off_run16
+OK A1_both_off_run16 rc=0
+RUN A1_both_off_run17
+OK A1_both_off_run17 rc=0
+RUN A1_both_off_run18
+OK A1_both_off_run18 rc=0
+RUN A1_both_off_run19
+OK A1_both_off_run19 rc=0
+RUN A1_both_off_run20
+OK A1_both_off_run20 rc=0
+RUN A1_both_off_run21
+OK A1_both_off_run21 rc=0
+RUN A1_both_off_run22
+OK A1_both_off_run22 rc=0
+RUN A1_both_off_run23
+OK A1_both_off_run23 rc=0
+RUN A1_both_off_run24
+OK A1_both_off_run24 rc=0
+RUN A2_both_full_run01
+OK A2_both_full_run01 rc=0
+RUN A2_both_full_run02
+OK A2_both_full_run02 rc=0
+RUN A2_both_full_run03
+OK A2_both_full_run03 rc=0
+RUN A2_both_full_run04
+OK A2_both_full_run04 rc=0
+RUN A2_both_full_run05
+OK A2_both_full_run05 rc=0
+RUN A2_both_full_run06
+OK A2_both_full_run06 rc=0
+RUN A2_both_full_run07
+OK A2_both_full_run07 rc=0
+RUN A2_both_full_run08
+OK A2_both_full_run08 rc=0
+RUN A2_both_full_run09
+OK A2_both_full_run09 rc=0
+RUN A2_both_full_run10
+OK A2_both_full_run10 rc=0
+RUN A2_both_full_run11
+OK A2_both_full_run11 rc=0
+RUN A2_both_full_run12
+OK A2_both_full_run12 rc=0
+RUN A2_both_full_run13
+OK A2_both_full_run13 rc=0
+RUN A2_both_full_run14
+OK A2_both_full_run14 rc=0
+RUN A2_both_full_run15
+OK A2_both_full_run15 rc=0
+RUN A2_both_full_run16
+OK A2_both_full_run16 rc=0
+RUN A2_both_full_run17
+OK A2_both_full_run17 rc=0
+RUN A2_both_full_run18
+OK A2_both_full_run18 rc=0
+RUN A2_both_full_run19
+OK A2_both_full_run19 rc=0
+RUN A2_both_full_run20
+OK A2_both_full_run20 rc=0
+RUN A2_both_full_run21
+OK A2_both_full_run21 rc=0
+RUN A2_both_full_run22
+OK A2_both_full_run22 rc=0
+RUN A2_both_full_run23
+OK A2_both_full_run23 rc=0
+RUN A2_both_full_run24
+OK A2_both_full_run24 rc=0
+RUN A3_red_full_blue_off_run01
+OK A3_red_full_blue_off_run01 rc=0
+RUN A3_red_full_blue_off_run02

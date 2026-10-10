@@ -1,0 +1,7 @@
+rate_mbps,t_max_ms,local_process_ms,tx_ms,identity_utility,identity_violations,greedy_utility,greedy_violations,sampled_best_utility,sampled_best_violations,note
+10,50.0,30.05,245.76,-180.31,0,-180.31,0,-180.31,0,offline numerical check; not a match outcome
+10,100.0,30.05,245.76,-180.31,0,-180.31,0,-180.31,0,offline numerical check; not a match outcome
+50,50.0,30.05,49.15,-180.31,0,-180.31,0,-180.31,0,offline numerical check; not a match outcome
+50,100.0,30.05,49.15,-180.31,0,-180.31,0,-180.31,0,offline numerical check; not a match outcome
+100,50.0,30.05,24.58,-180.31,0,-180.31,0,-180.31,0,offline numerical check; not a match outcome
+100,100.0,30.05,24.58,-180.31,0,-180.31,0,-180.31,0,offline numerical check; not a match outcome

@@ -1,0 +1,26 @@
+{
+  "C": {
+    "label": "C redSOLO blueCOOP",
+    "n": 10,
+    "expect_winner": "blue",
+    "coop_side_wins": 10,
+    "coop_side_win_rate": 1.0,
+    "expected_wins": 10,
+    "expected_win_rate": 1.0,
+    "sim_time_mean": 33.95,
+    "sim_time_std": 10.75837761416139,
+    "hit_diff_coop_minus_solo_mean": 13.3
+  },
+  "D": {
+    "label": "D redCOOP blueSOLO",
+    "n": 10,
+    "expect_winner": "red",
+    "coop_side_wins": 10,
+    "coop_side_win_rate": 1.0,
+    "expected_wins": 10,
+    "expected_win_rate": 1.0,
+    "sim_time_mean": 33.051,
+    "sim_time_std": 10.146508375900659,
+    "hit_diff_coop_minus_solo_mean": 12.6
+  }
+}

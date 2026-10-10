@@ -1,0 +1,42 @@
+{
+  "A": {
+    "label": "A_solo_both",
+    "n": 10,
+    "win_red": 3,
+    "win_blue": 6,
+    "draw": 1,
+    "win_red_rate": 0.3,
+    "win_blue_rate": 0.6,
+    "draw_rate": 0.1,
+    "sim_time_mean": 54.04,
+    "sim_time_std": 20.216577356219325,
+    "red_acc_mean": 66.45,
+    "blue_acc_mean": 69.24,
+    "overall_acc_mean": 67.67,
+    "total_hits_mean": 21.5,
+    "total_shots_mean": 28.8,
+    "fusion_assist_mean": 0.0,
+    "red_hits_mean": 10.0,
+    "blue_hits_mean": 11.5
+  },
+  "B": {
+    "label": "B_coop_both",
+    "n": 10,
+    "win_red": 5,
+    "win_blue": 4,
+    "draw": 1,
+    "win_red_rate": 0.5,
+    "win_blue_rate": 0.4,
+    "draw_rate": 0.1,
+    "sim_time_mean": 39.442,
+    "sim_time_std": 18.283326830749374,
+    "red_acc_mean": 45.19,
+    "blue_acc_mean": 42.83,
+    "overall_acc_mean": 44.33,
+    "total_hits_mean": 22.8,
+    "total_shots_mean": 46.8,
+    "fusion_assist_mean": 28.3,
+    "red_hits_mean": 11.9,
+    "blue_hits_mean": 10.9
+  }
+}
